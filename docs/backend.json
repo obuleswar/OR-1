@@ -1,195 +1,260 @@
-
 {
   "entities": {
     "App": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "App",
       "type": "object",
-      "description": "Represents a mobile application available in the store.",
+      "description": "Represents an Android application available in the APKeasy store, including its metadata, download information, and performance metrics.",
       "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "publisher": { "type": "string" },
-        "iconUrl": { "type": "string", "format": "uri" },
-        "shortDescription": { "type": "string" },
-        "description": { "type": "string" },
-        "currentVersionId": { "type": "string" },
-        "categoryIds": { "type": "array", "items": { "type": "string" } },
-        "downloadCount": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "updatedAt": { "type": "string", "format": "date-time" }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the App entity."
+        },
+        "title": {
+          "type": "string",
+          "description": "The display title of the application."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the application's features and functionality."
+        },
+        "iconUrl": {
+          "type": "string",
+          "description": "URL to the application's icon image, typically a small, square graphic.",
+          "format": "uri"
+        },
+        "latestVersion": {
+          "type": "string",
+          "description": "The latest version string of the application (e.g., '1.0.0', '1.2 Beta'). Used for update notifications."
+        },
+        "downloadUrl": {
+          "type": "string",
+          "description": "URL to directly download the APK file for this application.",
+          "format": "uri"
+        },
+        "screenshotUrls": {
+          "type": "array",
+          "description": "An array of URLs to images showcasing the application's user interface and features.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "downloadCount": {
+          "type": "number",
+          "description": "The total number of times this application's APK has been downloaded, reflecting its popularity."
+        },
+        "publisherName": {
+          "type": "string",
+          "description": "The name of the publisher or developer responsible for the application."
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "The date and time when this version of the application was released.",
+          "format": "date-time"
+        },
+        "categoryIds": {
+          "type": "array",
+          "description": "References to Categories this application belongs to, enabling category-based browsing. (Relationship: Category N:N App)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the app record was first created in the system.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the app record was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["id", "title", "publisher", "downloadCount"]
+      "required": [
+        "id",
+        "title",
+        "description",
+        "iconUrl",
+        "latestVersion",
+        "downloadUrl",
+        "screenshotUrls",
+        "downloadCount",
+        "publisherName",
+        "releaseDate",
+        "categoryIds",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "Category": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Category",
+      "type": "object",
+      "description": "Represents a classification or genre for organizing applications within the store, facilitating discovery.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Category entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the category (e.g., 'Games', 'Productivity', 'Tools')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of what this category entails."
+        },
+        "iconUrl": {
+          "type": "string",
+          "description": "URL to an icon representing this category, used for minimalistic navigation.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description"
+      ]
     },
     "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "UserProfile",
       "type": "object",
-      "description": "User profile tracking balance and referral data.",
+      "description": "Stores user-specific data and preferences within the APKeasy application, linked to an external authentication system.",
       "properties": {
-        "uid": { "type": "string" },
-        "email": { "type": "string" },
-        "balance": { "type": "number", "description": "Current balance in INR." },
-        "totalEarning": { "type": "number", "default": 0 },
-        "ownReferralCode": { "type": "string", "description": "The user's unique code to share." },
-        "referredBy": { "type": "string", "description": "The code used by this user when signing up." }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity, typically linked to an external authentication system's user ID (e.g., Firebase UID)."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address, obtained from the external authentication system, used for identification.",
+          "format": "email"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's chosen display name or alias within the app."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was first created.",
+          "format": "date-time"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user profile was last updated.",
+          "format": "date-time"
+        }
       },
-      "required": ["uid", "email", "balance", "ownReferralCode"]
+      "required": [
+        "id",
+        "email",
+        "createdAt",
+        "updatedAt"
+      ]
     },
-    "WingoResult": {
-      "title": "WingoResult",
+    "UserAppInteraction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserAppInteraction",
       "type": "object",
+      "description": "Records a specific user's interaction (e.g., download) with an application, enabling features like update notifications.",
       "properties": {
-        "period": { "type": "string" },
-        "num": { "type": "number" },
-        "bs": { "type": "string", "enum": ["Big", "Small"] },
-        "color": { "type": "array", "items": { "type": "string" } },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "K3Result": {
-      "title": "K3Result",
-      "type": "object",
-      "properties": {
-        "period": { "type": "string" },
-        "dice": { "type": "array", "items": { "type": "number" } },
-        "sum": { "type": "number" },
-        "bs": { "type": "string", "enum": ["Big", "Small"] },
-        "oe": { "type": "string", "enum": ["Odd", "Even"] },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "WingoBet": {
-      "title": "WingoBet",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "period": { "type": "string" },
-        "gameType": { "type": "string" },
-        "betType": { "type": "string" },
-        "amount": { "type": "number" },
-        "status": { "type": "string", "enum": ["pending", "won", "lost"] },
-        "payout": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "DragonTigerResult": {
-      "title": "DragonTigerResult",
-      "type": "object",
-      "properties": {
-        "period": { "type": "string" },
-        "winner": { "type": "string", "enum": ["Dragon", "Tiger", "Tie"] },
-        "dragonCard": { "type": "number" },
-        "tigerCard": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "MinesGame": {
-      "title": "MinesGame",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "betAmount": { "type": "number" },
-        "bombCount": { "type": "number" },
-        "revealedIndices": { "type": "array", "items": { "type": "number" } },
-        "bombPositions": { "type": "array", "items": { "type": "number" }, "description": "Hidden from client until game ends" },
-        "status": { "type": "string", "enum": ["active", "won", "lost"] },
-        "payout": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Transaction": {
-      "title": "Transaction",
-      "type": "object",
-      "properties": {
-        "id": { "type": "string" },
-        "userId": { "type": "string" },
-        "type": { "type": "string", "enum": ["deposit", "withdraw", "bet", "win", "referral"] },
-        "amount": { "type": "number" },
-        "description": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      }
-    },
-    "Referral": {
-      "title": "Referral",
-      "type": "object",
-      "properties": {
-        "referrerUid": { "type": "string" },
-        "referredUid": { "type": "string" },
-        "amount": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
-      }
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserAppInteraction entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who performed the interaction. (Relationship: UserProfile 1:N UserAppInteraction)"
+        },
+        "appId": {
+          "type": "string",
+          "description": "Reference to the App with which the interaction occurred. (Relationship: App 1:N UserAppInteraction)"
+        },
+        "downloadedVersion": {
+          "type": "string",
+          "description": "The version of the application that the user last downloaded or installed."
+        },
+        "downloadedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user last downloaded this specific version of the app.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "appId",
+        "downloadedVersion",
+        "downloadedAt"
+      ]
     }
   },
   "auth": {
-    "providers": ["password", "anonymous"]
+    "providers": [
+      "password",
+      "anonymous"
+    ]
   },
   "firestore": {
     "structure": [
       {
+        "path": "/apps/{appId}",
+        "definition": {
+          "entityName": "App",
+          "schema": {
+            "$ref": "#/backend/entities/App"
+          },
+          "description": "Publicly accessible collection of applications available in the store. Includes app metadata, download links, and metrics. Designed for public read, admin write."
+        }
+      },
+      {
+        "path": "/categories/{categoryId}",
+        "definition": {
+          "entityName": "Category",
+          "schema": {
+            "$ref": "#/backend/entities/Category"
+          },
+          "description": "Publicly accessible collection of application categories for browsing and organization. Designed for public read, admin write."
+        }
+      },
+      {
         "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
-          "schema": { "$ref": "#/backend/entities/UserProfile" },
-          "description": "User profile and balance info."
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Stores individual user profiles. Access is restricted to the owning user, identified by the userId matching request.auth.uid.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to Firebase Authentication's UID."
+            }
+          ]
         }
       },
       {
-        "path": "/wingo_results/{period}",
+        "path": "/users/{userId}/userAppInteractions/{userAppInteractionId}",
         "definition": {
-          "entityName": "WingoResult",
-          "schema": { "$ref": "#/backend/entities/WingoResult" },
-          "description": "History of Wingo game results."
-        }
-      },
-      {
-        "path": "/k3_results/{period}",
-        "definition": {
-          "entityName": "K3Result",
-          "schema": { "$ref": "#/backend/entities/K3Result" },
-          "description": "History of K3 Lotre results."
-        }
-      },
-      {
-        "path": "/dragon_tiger_results/{period}",
-        "definition": {
-          "entityName": "DragonTigerResult",
-          "schema": { "$ref": "#/backend/entities/DragonTigerResult" },
-          "description": "History of Dragon vs Tiger game results."
-        }
-      },
-      {
-        "path": "/mines_games/{gameId}",
-        "definition": {
-          "entityName": "MinesGame",
-          "schema": { "$ref": "#/backend/entities/MinesGame" },
-          "description": "Active and past Mines game sessions."
-        }
-      },
-      {
-        "path": "/bets/{betId}",
-        "definition": {
-          "entityName": "WingoBet",
-          "schema": { "$ref": "#/backend/entities/WingoBet" },
-          "description": "User bets on games."
-        }
-      },
-      {
-        "path": "/transactions/{txnId}",
-        "definition": {
-          "entityName": "Transaction",
-          "schema": { "$ref": "#/backend/entities/Transaction" },
-          "description": "History of all financial movements."
-        }
-      },
-      {
-        "path": "/referrals/{refId}",
-        "definition": {
-          "entityName": "Referral",
-          "schema": { "$ref": "#/backend/entities/Referral" },
-          "description": "History of referral bonuses."
+          "entityName": "UserAppInteraction",
+          "schema": {
+            "$ref": "#/backend/entities/UserAppInteraction"
+          },
+          "description": "Records specific interactions of a user with an app (e.g., download history). This data is owned by the user, and includes denormalized 'userId' for authorization independence. The 'userId' in the path must match the 'userId' field in the document and request.auth.uid.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, corresponding to Firebase Authentication's UID."
+            },
+            {
+              "name": "userAppInteractionId",
+              "description": "The unique identifier for a specific user-app interaction record."
+            }
+          ]
         }
       }
-    ]
+    ],
+    "reasoning": "The Firestore structure is designed following the core principles of Authorization Independence, Structural Segregation, and Access Modeling to ensure security, scalability, and debuggability. \n\n**Authorization Independence via Denormalization:**\n*   For `UserProfile` and `UserAppInteraction` data, ownership is established via hierarchical paths (`/users/{userId}/...`). The `userId` within the document for `UserAppInteraction` is explicitly included and validated against the path's `userId` segment in security rules. This eliminates the need for `get()` calls to a parent document to determine access rights, making operations atomic and rules straightforward to debug. For instance, `UserAppInteraction` documents will contain `userId` which must match `request.auth.uid` and the `userId` in the path, ensuring atomic writes and reads without needing to check the parent `UserProfile` document.\n\n**Structural Segregation for Homogeneous Security Posture:**\n*   **Public Data (`/apps`, `/categories`):** These collections hold data intended for public consumption. All documents within these collections share the same security posture: read-only for all authenticated users, and write-access exclusively for administrators. This simplifies security rules immensely, avoiding complex conditional logic within a single collection.\n*   **Private User Data (`/users/{userId}`, `/users/{userId}/userAppInteractions`):** These collections are strictly segregated to contain data owned and accessible only by the authenticated user whose `uid` matches the `{userId}` wildcard in the path. This ensures that a user cannot accidentally or maliciously access another user's private data.\n\n**Access Modeling and QAPs (Rules are not Filters):**\n*   **Public Data (`/apps`, `/categories`):** `list` operations are fully supported and secure because all documents in these collections are public. Rules will simply allow `read` operations for any authenticated user, satisfying QAP requirements without filtering.\n*   **Private User Data (`/users/{userId}`, `/users/{userId}/userAppInteractions`):** By using path-based ownership, `list` queries are inherently secure. A user querying `db.collection('users').doc(request.auth.uid).collection('userAppInteractions')` will only ever receive documents where the path `userId` matches their `uid`. The security rules will enforce `request.auth.uid == userId`, ensuring that `list` operations are always scoped to the requesting user's data, thus upholding the QAP principle that rules should validate, not filter.\n\n**DBAC (Database Access Control for Admin Roles):**\n*   To manage administrative access (e.g., for uploading/editing apps and categories), a dedicated collection like `/roles_admin/{userId}` would be used. The mere *existence* of a document in this collection, with the document ID matching a `UserProfile`'s `id`, would grant administrative privileges. Security rules would check `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))` to grant `write` access to public collections (`/apps`, `/categories`). This adheres to DBAC by storing roles in the database, relying solely on `request.auth.uid`, and avoiding custom claims.\n\nThis structure prioritizes explicit authorization logic, clear data ownership, and simplifies security rule implementation, making the system robust and easy to maintain and debug."
   }
 }
