@@ -50,15 +50,24 @@ export default function LoginPage() {
       // Generate a unique 8-character referral code
       const ownCode = generateReferralCode();
       
-      // Create user profile in 'users' collection
+      // Create user profile in 'users' collection with ₹28 Sign up bonus
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
-        balance: 0,
+        balance: 28, // Sign up bonus
         ownReferralCode: ownCode,
         referredBy: referralCode.trim().toUpperCase() || null,
         createdAt: serverTimestamp(),
+      });
+
+      // Log the sign up bonus transaction
+      await addDoc(collection(db, 'transactions'), {
+        userId: user.uid,
+        type: 'bonus',
+        amount: 28,
+        description: 'Welcome Sign-up Bonus',
+        timestamp: serverTimestamp(),
       });
 
       // Handle referral logic
@@ -84,13 +93,13 @@ export default function LoginPage() {
             timestamp: serverTimestamp(),
           });
 
-          toast({ title: 'Bonus Applied!', description: 'You used a valid referral code.' });
+          toast({ title: 'Referral Applied!', description: 'Bonus applied successfully.' });
         } else {
           toast({ variant: 'destructive', title: 'Invalid Code', description: 'No user found with that referral code.' });
         }
       }
 
-      toast({ title: 'Account created!', description: 'Welcome to OR Wallet.' });
+      toast({ title: 'Welcome! ₹28 Added', description: 'Your sign-up bonus has been credited.' });
       router.push('/dashboard');
     } catch (error: any) {
       toast({
