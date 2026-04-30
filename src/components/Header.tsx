@@ -1,6 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useUser, useAuth } from '@/firebase';
+import { Button } from '@/components/ui/button';
+import { signOut } from 'firebase/auth';
 
 function HeaderLogo() {
   return (
@@ -29,12 +32,40 @@ function HeaderLogo() {
 }
 
 export function Header() {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  const handleSignOut = () => {
+    signOut(auth);
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <HeaderLogo />
-        <div className="flex items-center gap-2">
-        </div>
+        <nav className="flex items-center gap-4">
+          <Link href="/upload" className="text-sm font-medium hover:text-primary">
+            Add Transaction
+          </Link>
+          {!isUserLoading && (
+            <>
+              {user ? (
+                <div className="flex items-center gap-4">
+                  <span className="text-sm text-muted-foreground hidden sm:inline">
+                    {user.email}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                </div>
+              ) : (
+                <Link href="/login">
+                  <Button size="sm">Sign In</Button>
+                </Link>
+              )}
+            </>
+          )}
+        </nav>
       </div>
     </header>
   );
