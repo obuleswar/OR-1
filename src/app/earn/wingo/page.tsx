@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const ROUND_TIME = 30;
+const ROUND_TIME = 60; // Updated to 1 minute
 
 export default function WingoPage() {
   const { user } = useUser();
@@ -72,7 +72,7 @@ export default function WingoPage() {
     const timer = setInterval(() => {
       const now = new Date();
       const period = generatePeriod();
-      const secondsInRound = (now.getUTCSeconds() % ROUND_TIME);
+      const secondsInRound = (now.getUTCSeconds() + (now.getUTCMinutes() * 60)) % ROUND_TIME;
       const remaining = ROUND_TIME - secondsInRound;
 
       setTimeLeft(remaining);
@@ -152,7 +152,7 @@ export default function WingoPage() {
         </Link>
         <div className="bg-[#00d2ff]/20 border border-[#00d2ff]/40 px-6 py-2 rounded-xl flex flex-col items-center shadow-[0_0_15px_rgba(0,210,255,0.3)]">
           <Zap className="w-4 h-4 text-[#00d2ff] mb-1" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">30 SEC</span>
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">1 MIN</span>
         </div>
         <div className="flex gap-2">
           <Link href="/earn/wingo/history">
