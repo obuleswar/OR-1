@@ -49,6 +49,28 @@ export default function DragonTigerPage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
+  // Settlement trigger when period changes
+  useEffect(() => {
+    if (!isInitialized || !currentPeriod) return;
+
+    const now = new Date();
+    const nowMs = now.getTime();
+    const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
+    const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
+                    (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                    prevRoundTime.getUTCDate().toString().padStart(2, '0');
+    const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
+    const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
+    const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
+
+    if (lastSettledPeriod.current !== prevPeriod) {
+      lastSettledPeriod.current = prevPeriod;
+      startTransition(() => {
+        settleDragonTigerRound(prevPeriod);
+      });
+    }
+  }, [currentPeriod, isInitialized]);
+
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -62,24 +84,6 @@ export default function DragonTigerPage() {
       
       if (period !== currentPeriod) {
         setCurrentPeriod(period);
-      }
-
-      if (remaining >= ROUND_TIME - 2) {
-        const nowMs = now.getTime();
-        const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
-        const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
-                        (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                        prevRoundTime.getUTCDate().toString().padStart(2, '0');
-        const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
-        const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
-        const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
-
-        if (lastSettledPeriod.current !== prevPeriod) {
-          lastSettledPeriod.current = prevPeriod;
-          startTransition(() => {
-            settleDragonTigerRound(prevPeriod);
-          });
-        }
       }
     }, 1000);
 
@@ -185,15 +189,6 @@ export default function DragonTigerPage() {
           <span className="text-xl font-black italic mb-1">TIGER</span>
           <span className="text-[10px] font-bold opacity-60">1.90</span>
         </button>
-      </div>
-
-      {/* Betting Stats Bar */}
-      <div className="grid grid-cols-3 gap-4 mb-12 px-2">
-         {[0,0,0].map((v, i) => (
-           <div key={i} className="bg-white/5 h-10 rounded-full flex items-center justify-center border border-white/5">
-              <span className="text-xs font-bold text-white/40">₹{v}</span>
-           </div>
-         ))}
       </div>
 
       {/* Chip Selector */}

@@ -94,8 +94,12 @@ export async function settleRound(period: string) {
     const betsSnap = await getDocs(betsQuery);
 
     if (betsSnap.empty) {
-      return { success: true, result: { num, bs, color }, message: 'No bets to settle' };
+      return { success: true, result: { num, bs, color } };
     }
+
+    // Use a single batch for all updates in this settlement
+    const batch = writeBatch(db);
+    let batchSize = 0;
 
     for (const betDoc of betsSnap.docs) {
       const bet = betDoc.data();
@@ -108,14 +112,13 @@ export async function settleRound(period: string) {
       if (bet.betType === num.toString()) won = true;
 
       if (won) {
-        // Simple multiplier logic
+        // Multiplier logic
         let multiplier = 2;
         if (['violet'].includes(bet.betType.toLowerCase())) multiplier = 4.5;
         if (!isNaN(parseInt(bet.betType))) multiplier = 9;
         
         payout = bet.amount * multiplier;
 
-        const batch = writeBatch(db);
         batch.update(doc(db, 'bets', betDoc.id), {
           status: 'won',
           payout
@@ -131,13 +134,23 @@ export async function settleRound(period: string) {
           description: `Win on ${bet.betType} for period ${period}`,
           timestamp: serverTimestamp()
         });
-        await batch.commit();
       } else {
-        await updateDoc(doc(db, 'bets', betDoc.id), {
+        batch.update(doc(db, 'bets', betDoc.id), {
           status: 'lost',
           payout: 0
         });
       }
+      
+      batchSize++;
+      // Commit every 400 operations to stay safe under 500 limit
+      if (batchSize >= 400) {
+        await batch.commit();
+        batchSize = 0;
+      }
+    }
+
+    if (batchSize > 0) {
+      await batch.commit();
     }
 
     return { success: true, result: { num, bs, color } };

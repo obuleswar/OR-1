@@ -94,6 +94,9 @@ export async function settleDragonTigerRound(period: string) {
       return { success: true, result: { winner, dragonCard, tigerCard } };
     }
 
+    const batch = writeBatch(db);
+    let batchSize = 0;
+
     for (const betDoc of betsSnap.docs) {
       const bet = betDoc.data();
       let won = bet.betType === winner;
@@ -103,7 +106,6 @@ export async function settleDragonTigerRound(period: string) {
         let multiplier = winner === 'Tie' ? 9 : 1.9;
         payout = bet.amount * multiplier;
 
-        const batch = writeBatch(db);
         batch.update(doc(db, 'bets', betDoc.id), {
           status: 'won',
           payout
@@ -119,10 +121,22 @@ export async function settleDragonTigerRound(period: string) {
           description: `Win on ${bet.betType} in Dragon Tiger for period ${period}`,
           timestamp: serverTimestamp()
         });
-        await batch.commit();
       } else {
-        await setDoc(doc(db, 'bets', betDoc.id), { ...bet, status: 'lost', payout: 0 }, { merge: true });
+        batch.update(doc(db, 'bets', betDoc.id), {
+          status: 'lost',
+          payout: 0
+        });
       }
+      
+      batchSize++;
+      if (batchSize >= 400) {
+        await batch.commit();
+        batchSize = 0;
+      }
+    }
+
+    if (batchSize > 0) {
+      await batch.commit();
     }
 
     return { success: true, result: { winner, dragonCard, tigerCard } };

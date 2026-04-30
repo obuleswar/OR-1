@@ -17,7 +17,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 
-const ROUND_TIME = 60; // Updated to 1 minute
+const ROUND_TIME = 60; 
 
 export default function WingoPage() {
   const { user } = useUser();
@@ -59,13 +59,34 @@ export default function WingoPage() {
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
 
-  // Initialize period on mount to avoid hydration mismatch
   useEffect(() => {
     setCurrentPeriod(generatePeriod());
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  // Sync Timer
+  // Settlement trigger when period changes
+  useEffect(() => {
+    if (!isInitialized || !currentPeriod) return;
+
+    const now = new Date();
+    const nowMs = now.getTime();
+    const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
+    const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
+                    (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                    prevRoundTime.getUTCDate().toString().padStart(2, '0');
+    const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
+    const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
+    const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
+
+    if (lastSettledPeriod.current !== prevPeriod) {
+      lastSettledPeriod.current = prevPeriod;
+      startTransition(() => {
+        settleRound(prevPeriod);
+      });
+    }
+  }, [currentPeriod, isInitialized]);
+
+  // Clock Timer
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -79,26 +100,6 @@ export default function WingoPage() {
       
       if (period !== currentPeriod) {
         setCurrentPeriod(period);
-      }
-
-      // Settle previous round logic
-      if (remaining >= ROUND_TIME - 2) {
-        const nowMs = now.getTime();
-        const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
-        const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
-                        (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                        prevRoundTime.getUTCDate().toString().padStart(2, '0');
-        const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
-        const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
-        const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
-
-        if (lastSettledPeriod.current !== prevPeriod) {
-          lastSettledPeriod.current = prevPeriod;
-          // Use transition to avoid Router update issues
-          startTransition(() => {
-            settleRound(prevPeriod);
-          });
-        }
       }
     }, 1000);
 
@@ -142,7 +143,7 @@ export default function WingoPage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24">
+    <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/earn">
@@ -155,12 +156,8 @@ export default function WingoPage() {
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">1 MIN</span>
         </div>
         <div className="flex gap-2">
-          <Link href="/earn/wingo/history">
-            <Button variant="ghost" size="icon" className="text-white/60"><History className="h-5 w-5"/></Button>
-          </Link>
-          <Link href="/earn/wingo/my-bets">
-            <Button variant="ghost" size="icon" className="text-white/60"><Trophy className="h-5 w-5"/></Button>
-          </Link>
+          <Button variant="ghost" size="icon" className="text-white/60"><History className="h-5 w-5"/></Button>
+          <Button variant="ghost" size="icon" className="text-white/60"><Trophy className="h-5 w-5"/></Button>
         </div>
       </div>
 
