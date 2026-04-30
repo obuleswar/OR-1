@@ -9,25 +9,42 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Note: In production, balance updates should only happen via Cloud Functions.
-      // For this prototype, we allow the user to update their own profile for demo actions.
-      allow update: if isSignedIn() && request.auth.uid == userId;
+      // Allow update for balance and game-related metadata
+      allow update: if isSignedIn();
     }
 
     match /wingo_results/{period} {
       allow read: if true;
-      allow write: if false; // Only system should write
+      allow write: if isSignedIn();
+    }
+
+    match /k3_results/{period} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    match /dragon_tiger_results/{period} {
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     match /bets/{betId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow update: if false; // System only
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update: if isSignedIn();
     }
 
     match /transactions/{txnId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    match /mines_games/{gameId} {
+      allow read, write: if isSignedIn();
+    }
+    
+    match /referrals/{refId} {
+      allow read, write: if isSignedIn();
     }
   }
 }
