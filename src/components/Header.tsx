@@ -16,14 +16,19 @@ function HeaderLogo() {
           xmlns="http://www.w3.org/2000/svg"
           className="w-10 h-10"
         >
-          {/* Combined Capital O and R Design */}
+          {/* Integrated Blocky O and R */}
           <path
-            d="M15 25V75H45V62H28V38H45V25H15Z"
+            d="M15 20H45V80H15V20ZM27 32V68H33V32H27Z"
             fill="currentColor"
             className="text-primary"
           />
           <path
-            d="M50 25V75H62V55H70L80 75H93L82 55C88 52 92 48 92 40C92 31 85 25 75 25H50ZM62 37H75C78 37 78 43 75 43H62V37Z"
+            d="M48 20H75C85 20 85 45 75 45H48V20ZM60 32V45H75C78 45 78 32 75 32H60Z"
+            fill="currentColor"
+            className="text-primary"
+          />
+          <path
+            d="M48 50H65L85 80H70L50 50H48V50Z"
             fill="currentColor"
             className="text-primary"
           />
