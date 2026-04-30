@@ -13,6 +13,23 @@ import { placeDragonTigerBet, settleDragonTigerRound } from './actions';
 
 const ROUND_TIME = 60;
 
+function PlayingCard({ value, suit, label, colorClass }: { value: number | string, suit: string, label: string, colorClass: string }) {
+  return (
+    <div className={cn("flex flex-col items-center gap-2 animate-in zoom-in duration-500")}>
+      <p className={cn("text-xs font-black uppercase tracking-widest", colorClass)}>{label}</p>
+      <div className="w-24 h-36 bg-white rounded-xl shadow-2xl flex flex-col items-center justify-between p-3 border-4 border-white/10 relative overflow-hidden group">
+        <div className="absolute top-1 left-2 text-black font-black text-lg leading-none">{value}</div>
+        <div className="text-4xl">{suit}</div>
+        <div className="absolute bottom-1 right-2 text-black font-black text-lg rotate-180 leading-none">{value}</div>
+        {/* Decorative pattern */}
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
+           <div className="text-6xl font-black text-black">DRAGON</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function DragonTigerPage() {
   const { user } = useUser();
   const db = useFirestore();
@@ -24,6 +41,10 @@ export default function DragonTigerPage() {
   const [currentPeriod, setCurrentPeriod] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  
+  // Reveal state
+  const [lastResult, setLastResult] = useState<{ dragon: number, tiger: number, winner: string } | null>(null);
+  const [isRevealing, setIsRevealing] = useState(false);
 
   const lastSettledPeriod = useRef<string | null>(null);
 
@@ -64,8 +85,18 @@ export default function DragonTigerPage() {
 
     if (lastSettledPeriod.current !== prevPeriod) {
       lastSettledPeriod.current = prevPeriod;
-      startTransition(() => {
-        settleDragonTigerRound(prevPeriod);
+      startTransition(async () => {
+        const res = await settleDragonTigerRound(prevPeriod);
+        if (res.success && res.result) {
+          setLastResult({
+            dragon: res.result.dragonCard,
+            tiger: res.result.tigerCard,
+            winner: res.result.winner
+          });
+          setIsRevealing(true);
+          // Show cards for 8 seconds then hide to prepare next
+          setTimeout(() => setIsRevealing(false), 8000);
+        }
       });
     }
   }, [currentPeriod, isInitialized, generatePeriod]);
@@ -109,6 +140,14 @@ export default function DragonTigerPage() {
     setIsPlacingBet(false);
   };
 
+  const getCardValue = (val: number) => {
+    if (val === 1) return 'A';
+    if (val === 11) return 'J';
+    if (val === 12) return 'Q';
+    if (val === 13) return 'K';
+    return val.toString();
+  };
+
   if (!isInitialized) return null;
 
   return (
@@ -134,29 +173,56 @@ export default function DragonTigerPage() {
              <span className="text-xs font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
           </div>
           <div className="flex items-center gap-1 text-yellow-500">
-             <Zap className="w-3 h-3 fill-yellow-500" />
-             <span className="text-xs font-bold font-mono">00:{timeLeft.toString().padStart(2, '0')}</span>
+             <Zap className={cn("w-3 h-3 fill-yellow-500", timeLeft <= 5 && "animate-pulse text-red-500")} />
+             <span className={cn("text-xs font-bold font-mono", timeLeft <= 5 && "text-red-500")}>00:{timeLeft.toString().padStart(2, '0')}</span>
           </div>
         </div>
       </div>
 
-      <div className="relative aspect-video bg-gradient-to-b from-[#111] to-[#050505] rounded-3xl mb-12 flex flex-col items-center justify-center overflow-hidden border border-white/5 shadow-2xl">
-         <div className="absolute inset-0 opacity-10 pointer-events-none">
-            <svg className="w-full h-full" viewBox="0 0 100 100">
-               <path d="M0 50 Q 50 0 100 50 T 0 50" fill="none" stroke="currentColor" strokeWidth="0.5" />
-            </svg>
-         </div>
-         <div className="flex flex-col items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
-               <svg className="w-8 h-8 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-               </svg>
-            </div>
-            <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/40">Preparing Battle...</p>
-         </div>
-         {timeLeft <= 5 && (
+      <div className="relative aspect-video bg-gradient-to-b from-[#111] to-[#050505] rounded-[2.5rem] mb-12 flex flex-col items-center justify-center overflow-hidden border border-white/5 shadow-2xl">
+         {isRevealing && lastResult ? (
+           <div className="flex items-center gap-12 z-10">
+              <PlayingCard value={getCardValue(lastResult.dragon)} suit="♠️" label="Dragon" colorClass="text-red-500" />
+              <div className="flex flex-col items-center">
+                 <div className="text-2xl font-black italic text-white/20 mb-2">VS</div>
+                 <div className={cn(
+                   "px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest",
+                   lastResult.winner === 'Dragon' ? "bg-red-500 text-white" :
+                   lastResult.winner === 'Tiger' ? "bg-blue-500 text-white" :
+                   "bg-green-500 text-white"
+                 )}>
+                   {lastResult.winner} WINS
+                 </div>
+              </div>
+              <PlayingCard value={getCardValue(lastResult.tiger)} suit="♥️" label="Tiger" colorClass="text-blue-500" />
+           </div>
+         ) : (
+           <>
+              <div className="absolute inset-0 opacity-10 pointer-events-none">
+                 <svg className="w-full h-full" viewBox="0 0 100 100">
+                    <path d="M0 50 Q 50 0 100 50 T 0 50" fill="none" stroke="currentColor" strokeWidth="0.5" />
+                 </svg>
+              </div>
+              <div className="flex flex-col items-center gap-4">
+                 <div className={cn("w-16 h-16 rounded-full bg-white/5 flex items-center justify-center", !isPending && "animate-pulse")}>
+                    {isPending ? (
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    ) : (
+                      <svg className="w-8 h-8 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                      </svg>
+                    )}
+                 </div>
+                 <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/40">
+                   {timeLeft <= 5 ? "Result Generating..." : "Preparing Battle..."}
+                 </p>
+              </div>
+           </>
+         )}
+         
+         {timeLeft <= 5 && !isRevealing && (
            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 backdrop-blur-sm">
-             <p className="text-2xl font-black text-red-500 uppercase tracking-widest italic">Locked</p>
+             <p className="text-2xl font-black text-red-500 uppercase tracking-widest italic animate-bounce">Betting Locked</p>
            </div>
          )}
       </div>
@@ -164,7 +230,8 @@ export default function DragonTigerPage() {
       <div className="grid grid-cols-3 gap-4 mb-12">
         <button 
           onClick={() => handleBet('Dragon')}
-          className="aspect-[4/5] bg-gradient-to-b from-[#ff1744] to-[#b71c1c] rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90"
+          className="aspect-[4/5] bg-gradient-to-b from-[#ff1744] to-[#b71c1c] rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90 disabled:opacity-50"
+          disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic mb-1">DRAGON</span>
           <span className="text-[10px] font-bold opacity-60">1.90</span>
@@ -172,7 +239,8 @@ export default function DragonTigerPage() {
 
         <button 
           onClick={() => handleBet('Tie')}
-          className="aspect-[4/5] bg-[#111] border-2 border-green-500/20 rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90"
+          className="aspect-[4/5] bg-[#111] border-2 border-green-500/20 rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90 disabled:opacity-50"
+          disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic text-[#00e676] mb-1">TIE</span>
           <span className="text-[10px] font-bold text-white/40">9.0</span>
@@ -180,7 +248,8 @@ export default function DragonTigerPage() {
 
         <button 
           onClick={() => handleBet('Tiger')}
-          className="aspect-[4/5] bg-gradient-to-b from-[#2979ff] to-[#0d47a1] rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90"
+          className="aspect-[4/5] bg-gradient-to-b from-[#2979ff] to-[#0d47a1] rounded-[2.5rem] p-4 flex flex-col items-center justify-center shadow-xl hover:scale-95 transition-transform active:scale-90 disabled:opacity-50"
+          disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic mb-1">TIGER</span>
           <span className="text-[10px] font-bold opacity-60">1.90</span>
