@@ -1,44 +1,12 @@
-
 'use server';
 
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc, setDoc, collection, increment, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { firebaseConfig } from '@/firebase/config';
+import { getMinesMultiplier } from '@/lib/mines-logic';
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
-
-// Factorial calculation for combinations
-function factorial(n: number): number {
-  if (n === 0 || n === 1) return 1;
-  let res = 1;
-  for (let i = 2; i <= n; i++) res *= i;
-  return res;
-}
-
-function combinations(n: number, k: number): number {
-  if (k < 0 || k > n) return 0;
-  return factorial(n) / (factorial(k) * factorial(n - k));
-}
-
-// Multiplier calculation for Mines
-// Payout = Bet * (Total_Cells / Remaining_Gems) * (Total_Cells - 1 / Remaining_Gems - 1) ...
-export function getMinesMultiplier(bombCount: number, revealedCount: number) {
-  if (revealedCount === 0) return 1;
-  const totalCells = 25;
-  const gemCount = totalCells - bombCount;
-  
-  // Probability of picking n gems in a row
-  // P = (G / T) * ((G-1) / (T-1)) * ... * ((G-n+1) / (T-n+1))
-  let prob = 1;
-  for (let i = 0; i < revealedCount; i++) {
-    prob *= (gemCount - i) / (totalCells - i);
-  }
-  
-  // House edge ~ 3%
-  const multiplier = (1 / prob) * 0.97;
-  return parseFloat(multiplier.toFixed(2));
-}
 
 export async function startMinesGame(userId: string, betAmount: number, bombCount: number) {
   try {

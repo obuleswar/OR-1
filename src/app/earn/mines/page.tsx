@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -9,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { startMinesGame, revealMinesCell, cashOutMines, getMinesMultiplier } from './actions';
+import { startMinesGame, revealMinesCell, cashOutMines } from './actions';
+import { getMinesMultiplier } from '@/lib/mines-logic';
 
 export default function MinesPage() {
   const { user } = useUser();
