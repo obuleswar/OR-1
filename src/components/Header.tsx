@@ -16,7 +16,7 @@ function CustomLogo() {
       >
         <path
           fillRule="evenodd"
-          d="M15,5 H85 A10,10 0 0 1 95,15 V25 A10,10 0 0 1 85,35 H70 L90,55 H75 L55,35 H45 V55 H25 V35 H15 A10,10 0 0 1 5,25 V15 A10,10 0 0 1 15,5 Z M25,15 V25 H35 V15 Z M55,15 V25 H75 V15 Z"
+          d="M15,5 H85 A10,10 0 0 1 95,15 V25 A10,10 0 0 1 85,35 H70 L90,55 H70 L55,35 H15 A10,10 0 0 1 5,25 V15 A10,10 0 0 1 15,5 Z M25,15 V25 H40 V15 Z M55,15 V25 H80 V15 Z"
           fill="currentColor"
           className="text-primary"
         />
