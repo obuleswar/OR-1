@@ -70,6 +70,21 @@
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
+    "MinesGame": {
+      "title": "MinesGame",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "betAmount": { "type": "number" },
+        "bombCount": { "type": "number" },
+        "revealedIndices": { "type": "array", "items": { "type": "number" } },
+        "bombPositions": { "type": "array", "items": { "type": "number" }, "description": "Hidden from client until game ends" },
+        "status": { "type": "string", "enum": ["active", "won", "lost"] },
+        "payout": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "Transaction": {
       "title": "Transaction",
       "type": "object",
@@ -110,6 +125,14 @@
           "entityName": "DragonTigerResult",
           "schema": { "$ref": "#/backend/entities/DragonTigerResult" },
           "description": "History of Dragon vs Tiger game results."
+        }
+      },
+      {
+        "path": "/mines_games/{gameId}",
+        "definition": {
+          "entityName": "MinesGame",
+          "schema": { "$ref": "#/backend/entities/MinesGame" },
+          "description": "Active and past Mines game sessions."
         }
       },
       {

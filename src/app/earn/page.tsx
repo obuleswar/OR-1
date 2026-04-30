@@ -46,7 +46,7 @@ const EARNING_TASKS = [
     icon: Bomb,
     color: 'text-yellow-400',
     bg: 'bg-yellow-400/10',
-    href: '#',
+    href: '/earn/mines',
   },
   {
     id: 'wingo',
