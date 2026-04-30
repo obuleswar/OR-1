@@ -39,7 +39,10 @@ export default function DashboardPage() {
   const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
   const [withdrawAmount, setWithdrawAmount] = useState('');
   const [withdrawMethod, setWithdrawMethod] = useState('upi');
-  const [withdrawDetails, setWithdrawDetails] = useState('');
+  const [upiId, setUpiId] = useState('');
+  const [bankAccount, setBankAccount] = useState('');
+  const [bankIfsc, setBankIfsc] = useState('');
+  const [bankName, setBankName] = useState('');
   const [withdrawEmail, setWithdrawEmail] = useState('');
   const [isWithdrawing, setIsWithdrawing] = useState(false);
 
@@ -80,6 +83,7 @@ export default function DashboardPage() {
         await updateDoc(userDocRef, {
           balance: increment(amount),
           lastDepositAt: serverTimestamp(),
+          lastDepositDetails: { amount, utr, email: depositEmail }
         });
 
         toast({
@@ -113,9 +117,19 @@ export default function DashboardPage() {
       return;
     }
 
-    if (!withdrawDetails) {
-      toast({ variant: 'destructive', title: 'Missing Details', description: 'Please enter your payment details.' });
-      return;
+    let details = "";
+    if (withdrawMethod === 'upi') {
+      if (!upiId) {
+        toast({ variant: 'destructive', title: 'Missing UPI ID', description: 'Please enter your UPI ID.' });
+        return;
+      }
+      details = `UPI: ${upiId}`;
+    } else {
+      if (!bankAccount || !bankIfsc || !bankName) {
+        toast({ variant: 'destructive', title: 'Missing Bank Details', description: 'Please fill all bank details (Account, IFSC, Name).' });
+        return;
+      }
+      details = `Bank: ${bankName}, Acc: ${bankAccount}, IFSC: ${bankIfsc}`;
     }
 
     setIsWithdrawing(true);
@@ -124,6 +138,7 @@ export default function DashboardPage() {
         await updateDoc(userDocRef, {
           balance: increment(-amount),
           lastWithdrawAt: serverTimestamp(),
+          lastWithdrawDetails: { amount, method: withdrawMethod, details, email: withdrawEmail }
         });
 
         toast({
@@ -132,7 +147,10 @@ export default function DashboardPage() {
         });
         setIsWithdrawOpen(false);
         setWithdrawAmount('');
-        setWithdrawDetails('');
+        setUpiId('');
+        setBankAccount('');
+        setBankIfsc('');
+        setBankName('');
         setWithdrawEmail('');
       }
     } catch (error: any) {
@@ -256,7 +274,7 @@ export default function DashboardPage() {
 
       {/* Withdrawal Dialog */}
       <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
-        <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl overflow-hidden">
+        <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl overflow-hidden max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold uppercase tracking-tight text-white">Withdraw Funds</DialogTitle>
             <DialogDescription className="text-muted-foreground">
@@ -292,19 +310,55 @@ export default function DashboardPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="details" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                {withdrawMethod === 'upi' ? 'UPI ID' : 'Bank Details (Acc No, IFSC)'}
-              </Label>
-              <Input
-                id="details"
-                placeholder={withdrawMethod === 'upi' ? "example@upi" : "Account Number, IFSC, Name"}
-                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
-                value={withdrawDetails}
-                onChange={(e) => setWithdrawDetails(e.target.value)}
-                required
-              />
-            </div>
+            {withdrawMethod === 'upi' ? (
+              <div className="space-y-2">
+                <Label htmlFor="upi-id" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">UPI ID</Label>
+                <Input
+                  id="upi-id"
+                  placeholder="example@upi"
+                  className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                  value={upiId}
+                  onChange={(e) => setUpiId(e.target.value)}
+                  required
+                />
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="bank-acc" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Number</Label>
+                  <Input
+                    id="bank-acc"
+                    placeholder="Enter Bank Account Number"
+                    className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                    value={bankAccount}
+                    onChange={(e) => setBankAccount(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-ifsc" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">IFSC Code</Label>
+                  <Input
+                    id="bank-ifsc"
+                    placeholder="Enter IFSC Code"
+                    className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                    value={bankIfsc}
+                    onChange={(e) => setBankIfsc(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="bank-name" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Account Holder Name</Label>
+                  <Input
+                    id="bank-name"
+                    placeholder="Enter Name on Account"
+                    className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                    value={bankName}
+                    onChange={(e) => setBankName(e.target.value)}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="w-email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Address</Label>
