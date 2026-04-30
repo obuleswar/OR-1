@@ -6,29 +6,9 @@ import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
 import { LayoutDashboard, Menu } from 'lucide-react';
 
-function CustomLogo() {
-  return (
-    <div className="flex items-center justify-center p-0 w-16 h-12">
-      <svg
-        viewBox="0 0 100 60"
-        className="h-full w-full"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          fillRule="evenodd"
-          d="M15,5 H85 A10,10 0 0 1 95,15 V25 A10,10 0 0 1 85,35 H70 L90,55 H70 L55,35 H15 A10,10 0 0 1 5,25 V15 A10,10 0 0 1 15,5 Z M25,15 V25 H40 V15 Z M55,15 V25 H80 V15 Z"
-          fill="currentColor"
-          className="text-primary"
-        />
-      </svg>
-    </div>
-  );
-}
-
 function HeaderLogo() {
   return (
     <Link href="/" className="flex items-center gap-1 font-bold text-3xl tracking-tighter text-white hover:opacity-90 transition-opacity">
-      <CustomLogo />
       OR WALLET
     </Link>
   );
