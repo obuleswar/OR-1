@@ -4,13 +4,13 @@ import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
-import { LayoutDashboard, ShoppingBag } from 'lucide-react';
+import { LayoutDashboard, Wallet } from 'lucide-react';
 
 function HeaderLogo() {
   return (
     <Link href="/" className="flex items-center gap-2 font-bold text-lg text-primary">
-      <ShoppingBag className="h-8 w-8" />
-      APP STORE
+      <Wallet className="h-8 w-8" />
+      OR WALLET
     </Link>
   );
 }
@@ -29,7 +29,7 @@ export function Header() {
         <HeaderLogo />
         <nav className="flex items-center gap-4">
           <Link href="/upload" className="text-sm font-medium hover:text-primary hidden sm:inline">
-            Add App
+            Add Transaction
           </Link>
           {!isUserLoading && (
             <>

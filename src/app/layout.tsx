@@ -7,14 +7,14 @@ import { Footer } from '@/components/Footer';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'App Store',
-  description: 'Manage your apps and referrals.',
+  title: 'OR Wallet',
+  description: 'Manage your transactions and referrals.',
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.Node;
 }>) {
   return (
     <html lang="en" className="h-full">

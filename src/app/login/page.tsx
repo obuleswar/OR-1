@@ -90,7 +90,7 @@ export default function LoginPage() {
         }
       }
 
-      toast({ title: 'Account created!', description: 'Welcome to the App Store.' });
+      toast({ title: 'Account created!', description: 'Welcome to OR Wallet.' });
       router.push('/dashboard');
     } catch (error: any) {
       toast({
