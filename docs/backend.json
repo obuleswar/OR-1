@@ -1,244 +1,51 @@
+
 {
   "entities": {
     "App": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "App",
       "type": "object",
-      "description": "Represents a mobile application available in the APKeasy store, detailing its core information and current status.",
+      "description": "Represents a mobile application available in the INR MINER store.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the App entity."
-        },
-        "title": {
-          "type": "string",
-          "description": "The human-readable name of the application."
-        },
-        "publisher": {
-          "type": "string",
-          "description": "The name of the developer or publisher of the app."
-        },
-        "iconUrl": {
-          "type": "string",
-          "description": "URL to the application's icon image.",
-          "format": "uri"
-        },
-        "shortDescription": {
-          "type": "string",
-          "description": "A concise summary of the application's purpose and key features, displayed in listings."
-        },
-        "description": {
-          "type": "string",
-          "description": "A comprehensive, detailed description of the application. This field can be generated or assisted by the AI App Description Generator tool."
-        },
-        "currentVersionId": {
-          "type": "string",
-          "description": "Reference to the latest active AppVersion available for this application, pointing to its specific version details. (Relationship: App 1:1 AppVersion)"
-        },
-        "categoryIds": {
-          "type": "array",
-          "description": "References to Category entities this app belongs to, enabling category-based browsing. (Relationship: App N:N Category)",
-          "items": {
-            "type": "string"
-          }
-        },
-        "downloadCount": {
-          "type": "number",
-          "description": "The aggregated total number of downloads for this application across all its versions, used to showcase popularity."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the app record was first created in the system.",
-          "format": "date-time"
-        },
-        "updatedAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the app record was last updated.",
-          "format": "date-time"
-        }
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "publisher": { "type": "string" },
+        "iconUrl": { "type": "string", "format": "uri" },
+        "shortDescription": { "type": "string" },
+        "description": { "type": "string" },
+        "currentVersionId": { "type": "string" },
+        "categoryIds": { "type": "array", "items": { "type": "string" } },
+        "downloadCount": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "id",
-        "title",
-        "publisher",
-        "iconUrl",
-        "shortDescription",
-        "description",
-        "currentVersionId",
-        "categoryIds",
-        "downloadCount",
-        "createdAt",
-        "updatedAt"
-      ]
+      "required": ["id", "title", "publisher", "downloadCount"]
     },
-    "AppVersion": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "AppVersion",
+    "UserProfile": {
+      "title": "UserProfile",
       "type": "object",
-      "description": "Represents a specific version of a mobile application, including its associated APK file and detailed version information.",
+      "description": "User profile tracking balance and referral data.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the AppVersion entity."
-        },
-        "appId": {
-          "type": "string",
-          "description": "Reference to the App this version belongs to. (Relationship: App 1:N AppVersion)"
-        },
-        "versionNumber": {
-          "type": "string",
-          "description": "The human-readable version string for this release (e.g., '1.0.5', '2.1-beta')."
-        },
-        "versionCode": {
-          "type": "number",
-          "description": "An internal, monotonically increasing integer version code, typically used by Android for system-level version checks and updates."
-        },
-        "releaseNotes": {
-          "type": "string",
-          "description": "A summary of changes, new features, and bug fixes included in this specific version."
-        },
-        "apkUrl": {
-          "type": "string",
-          "description": "URL to the actual APK file for this application version, enabling direct download.",
-          "format": "uri"
-        },
-        "fileSize": {
-          "type": "number",
-          "description": "The size of the APK file in bytes."
-        },
-        "minimumOsVersion": {
-          "type": "string",
-          "description": "The minimum Android OS version or API level required to run this application version (e.g., 'Android 5.0', 'API 21')."
-        },
-        "releaseDate": {
-          "type": "string",
-          "description": "Timestamp indicating when this specific application version was officially released and made available.",
-          "format": "date-time"
-        },
-        "isActive": {
-          "type": "boolean",
-          "description": "A flag indicating if this application version is currently active and available for download by users."
-        }
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "balance": { "type": "number", "description": "Current balance in INR." },
+        "ownReferralCode": { "type": "string", "description": "The user's unique code to share." },
+        "referredBy": { "type": "string", "description": "The code used by this user when signing up." }
       },
-      "required": [
-        "id",
-        "appId",
-        "versionNumber",
-        "versionCode",
-        "releaseNotes",
-        "apkUrl",
-        "fileSize",
-        "minimumOsVersion",
-        "releaseDate",
-        "isActive"
-      ]
-    },
-    "Category": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Category",
-      "type": "object",
-      "description": "Represents a classification category used to organize and facilitate discovery of applications in the store.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Category entity."
-        },
-        "name": {
-          "type": "string",
-          "description": "The distinct name of the category (e.g., 'Games', 'Productivity', 'Social')."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief explanation of what types of applications are grouped under this category."
-        },
-        "iconUrl": {
-          "type": "string",
-          "description": "Optional URL to an icon image that visually represents this category, used for UI elements.",
-          "format": "uri"
-        }
-      },
-      "required": [
-        "id",
-        "name",
-        "description"
-      ]
-    },
-    "Screenshot": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Screenshot",
-      "type": "object",
-      "description": "Represents an image asset used to visually showcase an application on its listing page.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the Screenshot entity."
-        },
-        "appId": {
-          "type": "string",
-          "description": "Reference to the App this screenshot belongs to. (Relationship: App 1:N Screenshot)"
-        },
-        "imageUrl": {
-          "type": "string",
-          "description": "URL to the actual screenshot image file, displayed on the app's detail page.",
-          "format": "uri"
-        },
-        "caption": {
-          "type": "string",
-          "description": "An optional descriptive caption or alt text for the screenshot."
-        },
-        "order": {
-          "type": "number",
-          "description": "The numerical order in which this screenshot should be displayed within the application's listing."
-        }
-      },
-      "required": [
-        "id",
-        "appId",
-        "imageUrl",
-        "order"
-      ]
+      "required": ["uid", "email", "balance", "ownReferralCode"]
     },
     "DownloadRecord": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "DownloadRecord",
       "type": "object",
-      "description": "Tracks individual download events for applications, contributing to overall download counts and analytics.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the DownloadRecord entity."
-        },
-        "appId": {
-          "type": "string",
-          "description": "Reference to the App that was downloaded. (Relationship: App 1:N DownloadRecord)"
-        },
-        "appVersionId": {
-          "type": "string",
-          "description": "Reference to the specific AppVersion that was downloaded. (Relationship: AppVersion 1:N DownloadRecord)"
-        },
-        "userId": {
-          "type": "string",
-          "description": "Optional reference to the user's external authentication ID (e.g., Firebase Auth User ID) who initiated the download. This field will be null for unauthenticated downloads. (Relationship: User 1:N DownloadRecord)"
-        },
-        "downloadedAt": {
-          "type": "string",
-          "description": "Timestamp indicating the precise moment when the download event occurred.",
-          "format": "date-time"
-        }
-      },
-      "required": [
-        "id",
-        "appId",
-        "appVersionId",
-        "downloadedAt"
-      ]
+        "id": { "type": "string" },
+        "appId": { "type": "string" },
+        "userId": { "type": "string" },
+        "downloadedAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
@@ -246,63 +53,26 @@
         "path": "/apps/{appId}",
         "definition": {
           "entityName": "App",
-          "schema": {
-            "$ref": "#/backend/entities/App"
-          },
-          "description": "Collection storing metadata for all applications available in the store. Publicly readable for dynamic catalog display. Admin-only write access via `roles_admin` collection for management. No denormalization for authorization needed as read is public and write is based on a global admin role."
+          "schema": { "$ref": "#/backend/entities/App" },
+          "description": "App catalog."
         }
       },
       {
-        "path": "/apps/{appId}/versions/{versionId}",
+        "path": "/users/{userId}",
         "definition": {
-          "entityName": "AppVersion",
-          "schema": {
-            "$ref": "#/backend/entities/AppVersion"
-          },
-          "description": "Subcollection containing specific versions of an application. Publicly readable to display current version details and enable downloads. Admin-only write access via `roles_admin` collection. Includes denormalized `appId` as per schema for structural clarity. Authorization independence is maintained as public read does not require parent lookups, and admin write is based on a global admin role."
+          "entityName": "UserProfile",
+          "schema": { "$ref": "#/backend/entities/UserProfile" },
+          "description": "User profile and balance info."
         }
       },
       {
-        "path": "/apps/{appId}/screenshots/{screenshotId}",
-        "definition": {
-          "entityName": "Screenshot",
-          "schema": {
-            "$ref": "#/backend/entities/Screenshot"
-          },
-          "description": "Subcollection storing visual screenshots for an application. Publicly readable for app listing pages. Admin-only write access via `roles_admin` collection. Includes denormalized `appId` as per schema for structural clarity. Authorization independence is maintained as public read does not require parent lookups, and admin write is based on a global admin role."
-        }
-      },
-      {
-        "path": "/categories/{categoryId}",
-        "definition": {
-          "entityName": "Category",
-          "schema": {
-            "$ref": "#/backend/entities/Category"
-          },
-          "description": "Collection defining various categories for organizing applications. Publicly readable for browsing. Admin-only write access via `roles_admin` collection. No denormalization for authorization needed as read is public and write is based on a global admin role."
-        }
-      },
-      {
-        "path": "/downloadRecords/{downloadRecordId}",
+        "path": "/downloadRecords/{recordId}",
         "definition": {
           "entityName": "DownloadRecord",
-          "schema": {
-            "$ref": "#/backend/entities/DownloadRecord"
-          },
-          "description": "Collection tracking individual download events for applications. Publicly writable by any user (authenticated or anonymous). Admin users have read access to all records for analytics. Authenticated users can read their own records by matching `request.auth.uid` with `resource.data.userId`, ensuring Authorization Independence by using self-contained data."
-        }
-      },
-      {
-        "path": "/roles_admin/{userId}",
-        "definition": {
-          "entityName": "roles_admin",
-          "schema": {
-            "$ref": "#/backend/entities/User"
-          },
-          "description": "Dedicated collection for Database-backed Access Control (DBAC). The existence of a document at this path where `{userId}` matches `request.auth.uid` grants administrative privileges for write operations across the application. Only other admins or trusted functions can write to this collection. Read access to individual documents can be granted to the respective user for self-verification of role."
+          "schema": { "$ref": "#/backend/entities/DownloadRecord" },
+          "description": "Download logs."
         }
       }
-    ],
-    "reasoning": "The proposed Firestore structure prioritizes clarity, security, and scalability by adhering strictly to the core design principles. The primary goal is to minimize complexity in security rules and enable efficient, secure querying.\n\n**Authorization Independence via Denormalization:**\nFor entities that are generally publicly accessible (like `App`, `AppVersion`, `Screenshot`, `Category`), read access is granted to all users. Write access for these entities is restricted to administrators. This is achieved by using a dedicated top-level `roles_admin` collection, where the existence of a document at `/roles_admin/{request.auth.uid}` confers administrative privileges. This method ensures authorization is independent of the data being accessed/modified, eliminating the need for `get()` calls to parent documents or other data in security rules for administrative actions. For example, an admin modifying an `App` document does not need to fetch the `App`'s `ownerId` from the document itself, nor any parent; their role is checked directly via the `roles_admin` collection. Similarly, `AppVersion` and `Screenshot` documents include `appId` for clear relationship, but their authorization (public read, admin write) does not depend on looking up the parent `App` document.\n\nFor `DownloadRecord` entities, user-specific read access is enabled by the `userId` field within the `DownloadRecord` document itself. An authenticated user can read their own `DownloadRecord` by checking `request.auth.uid == resource.data.userId`. This direct check on the document's own data ensures authorization independence without needing to query other collections.\n\n**QAPs (Rules are not Filters):**\n1.  **Public Catalog & Discovery:** The main `apps` and `categories` collections, along with their `versions` and `screenshots` subcollections, are designed for public read access. This allows users to query (`list`) the entire catalog, search results, or category-specific apps without security rules attempting to filter the results. The application logic (e.g., querying for `AppVersion` documents where `isActive` is true) handles what is displayed, ensuring QAPs are met for public listings. Rules simply grant `allow read: if true;` for these paths, or conditional `read` based on admin status for more sensitive data not explicitly requested here.\n2.  **Admin Operations:** For administrative lists (e.g., an admin viewing all apps, including drafts or inactive versions), the security rules grant `list` access if `exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid))` is true. This ensures the admin UI can retrieve comprehensive lists efficiently without filtering.\n3.  **User Download History:** If a user wants to view their personal download history, they can query the `downloadRecords` collection with a `where('userId', '==', request.auth.uid)` clause. The security rules will then validate `allow read: if request.auth.uid == resource.data.userId;`, which aligns with QAPs as the query itself is restricted by `userId`, and the rule merely confirms the self-ownership.\n\n**Structural Segregation & Access Modeling:**\n*   `apps`, `categories`: Top-level collections for globally accessible and admin-managed entities with public read/admin write posture.\n*   `apps/{appId}/versions`, `apps/{appId}/screenshots`: Hierarchical subcollections to clearly associate versions and screenshots with their parent `App`. This provides clear semantic grouping while maintaining public read/admin write access.\n*   `downloadRecords`: Top-level collection for all download events. This allows for both anonymous and authenticated downloads. Admin can read all for analytics, and users can read their own by checking the `userId` field within the document.\n*   `roles_admin`: A dedicated top-level collection for storing administrator UIDs, facilitating Database-backed Access Control (DBAC) through simple existence checks in security rules."
+    ]
   }
 }

@@ -1,9 +1,11 @@
+
 'use client';
 
 import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
+import { LayoutDashboard } from 'lucide-react';
 
 function HeaderLogo() {
   return (
@@ -26,7 +28,7 @@ function HeaderLogo() {
           <path d="M1610 2173 c-12 -14 -15 -54 -15 -215 0 -185 1 -198 20 -212 41 -31 135 -13 181 35 l29 30 0 142 c0 158 -9 193 -54 220 -39 23 -140 23 -161 0z m151 -24 c32 -17 39 -52 39 -193 0 -119 -2 -136 -20 -159 -20 -25 -31 -29 -122 -41 l-38 -5 0 211 0 211 60 -6 c34 -4 70 -12 81 -18z" />
         </g>
       </svg>
-      OR Store
+      INR MINER
     </Link>
   );
 }
@@ -44,16 +46,19 @@ export function Header() {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <HeaderLogo />
         <nav className="flex items-center gap-4">
-          <Link href="/upload" className="text-sm font-medium hover:text-primary">
+          <Link href="/upload" className="text-sm font-medium hover:text-primary hidden sm:inline">
             Add Transaction
           </Link>
           {!isUserLoading && (
             <>
               {user ? (
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground hidden sm:inline">
-                    {user.email}
-                  </span>
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <Link href="/dashboard">
+                    <Button variant="ghost" size="sm" className="flex items-center gap-1">
+                      <LayoutDashboard className="h-4 w-4" />
+                      <span className="hidden sm:inline">Dashboard</span>
+                    </Button>
+                  </Link>
                   <Button variant="outline" size="sm" onClick={handleSignOut}>
                     Sign Out
                   </Button>

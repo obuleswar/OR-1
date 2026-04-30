@@ -1,20 +1,24 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useAuth, initiateEmailSignIn, initiateEmailSignUp } from '@/firebase';
+import { useAuth, initiateEmailSignIn, initiateEmailSignUp, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { doc, setDoc, getDocs, collection, query, where, updateDoc, increment } from 'firebase/firestore';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const auth = useAuth();
+  const db = useFirestore();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -23,7 +27,7 @@ export default function LoginPage() {
     setIsLoading(true);
     try {
       initiateEmailSignIn(auth, email, password);
-      router.push('/');
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -39,8 +43,37 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      initiateEmailSignUp(auth, email, password);
-      router.push('/');
+      // For this prototype, we'll manually handle the signup and profile creation to ensure referral logic
+      const { createUserWithEmailAndPassword } = await import('firebase/auth');
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const ownCode = user.uid.substring(0, 6).toUpperCase();
+      
+      // Create user profile
+      const userRef = doc(db, 'users', user.uid);
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email,
+        balance: 0,
+        ownReferralCode: ownCode,
+        referredBy: referralCode || null,
+      });
+
+      // Handle referral reward for the referrer
+      if (referralCode) {
+        const referrersQuery = query(collection(db, 'users'), where('ownReferralCode', '==', referralCode.toUpperCase()));
+        const referrerDocs = await getDocs(referrersQuery);
+        if (!referrerDocs.empty) {
+          const referrerDoc = referrerDocs.docs[0];
+          await updateDoc(doc(db, 'users', referrerDoc.id), {
+            balance: increment(45)
+          });
+        }
+      }
+
+      toast({ title: 'Account created!', description: 'Welcome to INR MINER.' });
+      router.push('/dashboard');
     } catch (error: any) {
       toast({
         variant: 'destructive',
@@ -112,6 +145,16 @@ export default function LoginPage() {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-referral">Referral Code (Optional)</Label>
+                  <Input
+                    id="signup-referral"
+                    type="text"
+                    placeholder="ENTER CODE"
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
                   />
                 </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
