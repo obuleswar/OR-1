@@ -6,26 +6,27 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    match /apps/{appId} {
-      allow read: if true;
-      allow write: if false; 
-    }
-
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Balance can only be increased by the system logic (simulated by allowing update if specific conditions met)
-      // For this prototype, we allow the user to update their own profile
-      allow update: if isSignedIn() && (request.auth.uid == userId || request.resource.data.balance == resource.data.balance + 45);
+      // Note: In production, balance updates should only happen via Cloud Functions.
+      // For this prototype, we allow the user to update their own profile for demo actions.
+      allow update: if isSignedIn() && request.auth.uid == userId;
     }
 
-    match /referrals/{referralId} {
-      allow create: if isSignedIn();
-      allow read: if isSignedIn() && (resource.data.referrerUid == request.auth.uid || resource.data.referredUid == request.auth.uid);
+    match /wingo_results/{period} {
+      allow read: if true;
+      allow write: if false; // Only system should write
     }
 
-    match /downloadRecords/{recordId} {
-      allow create: if isSignedIn();
+    match /bets/{betId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow update: if false; // System only
+    }
+
+    match /transactions/{txnId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
       allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
     }
   }

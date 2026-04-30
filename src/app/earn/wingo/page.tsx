@@ -1,19 +1,35 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { IndianRupee, Zap, ChevronLeft } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { IndianRupee, Zap, ChevronLeft, Loader2, History, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { placeBet, settleRound } from './actions';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+
+const ROUND_TIME = 30;
 
 export default function WingoPage() {
   const { user } = useUser();
   const db = useFirestore();
-  const [timeLeft, setTimeLeft] = useState(60);
+  const { toast } = useToast();
+  
+  const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
   const [selectedAmount, setSelectedAmount] = useState(10);
+  const [currentPeriod, setCurrentPeriod] = useState('');
+  const [isBettingOpen, setIsBettingOpen] = useState(false);
+  const [betType, setBetType] = useState('');
+  const [isPlacingBet, setIsPlacingBet] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -22,28 +38,67 @@ export default function WingoPage() {
 
   const { data: profile } = useDoc(userDocRef);
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => (prev > 0 ? prev - 1 : 60));
-    }, 1000);
-    return () => clearInterval(timer);
+  const resultsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'wingo_results'), orderBy('period', 'desc'), limit(10));
+  }, [db]);
+
+  const { data: recentResults } = useCollection(resultsQuery);
+
+  const generatePeriod = useCallback(() => {
+    const now = new Date();
+    const yyyymmdd = now.toISOString().split('T')[0].replace(/-/g, '');
+    const secondsInDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const roundNumber = Math.floor(secondsInDay / ROUND_TIME);
+    return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return {
-      m1: Math.floor(mins / 10),
-      m2: mins % 10,
-      s1: Math.floor(secs / 10),
-      s2: secs % 10,
+  useEffect(() => {
+    const updatePeriod = () => {
+      const period = generatePeriod();
+      setCurrentPeriod(period);
+      
+      const now = new Date();
+      const secondsInRound = (now.getSeconds() % ROUND_TIME);
+      setTimeLeft(ROUND_TIME - secondsInRound);
     };
+
+    updatePeriod();
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // Trigger settlement for the ending period
+          settleRound(currentPeriod);
+          updatePeriod();
+          return ROUND_TIME;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentPeriod, generatePeriod]);
+
+  const handleBetClick = (type: string) => {
+    if (timeLeft <= 5) {
+      toast({ variant: 'destructive', title: 'Betting Closed', description: 'Wait for next round.' });
+      return;
+    }
+    setBetType(type);
+    setIsBettingOpen(true);
   };
 
-  const time = formatTime(timeLeft);
-
-  const amounts = [1, 5, 10, 50, 100];
-  const numbers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+  const onConfirmBet = async () => {
+    if (!user) return;
+    setIsPlacingBet(true);
+    const res = await placeBet(user.uid, currentPeriod, betType, selectedAmount);
+    if (res.success) {
+      toast({ title: 'Bet Placed', description: `₹${selectedAmount} on ${betType}` });
+      setIsBettingOpen(false);
+    } else {
+      toast({ variant: 'destructive', title: 'Error', description: res.error });
+    }
+    setIsPlacingBet(false);
+  };
 
   const getNumberColor = (num: number) => {
     if (num === 0) return 'bg-gradient-to-br from-purple-500 to-red-500';
@@ -55,22 +110,28 @@ export default function WingoPage() {
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24">
       {/* Header */}
-      <div className="flex items-center gap-4 mb-6">
+      <div className="flex items-center justify-between mb-6">
         <Link href="/earn">
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/5">
             <ChevronLeft className="h-6 w-6" />
           </Button>
         </Link>
-        <div className="flex-1 flex justify-center">
-          <div className="bg-[#00d2ff]/20 border border-[#00d2ff]/40 px-6 py-2 rounded-xl flex flex-col items-center shadow-[0_0_15px_rgba(0,210,255,0.3)]">
-            <Zap className="w-4 h-4 text-[#00d2ff] mb-1" />
-            <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">1 MIN</span>
-          </div>
+        <div className="bg-[#00d2ff]/20 border border-[#00d2ff]/40 px-6 py-2 rounded-xl flex flex-col items-center shadow-[0_0_15px_rgba(0,210,255,0.3)]">
+          <Zap className="w-4 h-4 text-[#00d2ff] mb-1" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">30 SEC</span>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/earn/wingo/history">
+            <Button variant="ghost" size="icon" className="text-white/60"><History className="h-5 w-5"/></Button>
+          </Link>
+          <Link href="/earn/wingo/my-bets">
+            <Button variant="ghost" size="icon" className="text-white/60"><Trophy className="h-5 w-5"/></Button>
+          </Link>
         </div>
       </div>
 
       {/* Stats Card */}
-      <div className="bg-gradient-to-r from-[#00d2ff] to-[#3a7bd5] rounded-[2rem] p-6 mb-6 shadow-xl relative overflow-hidden">
+      <div className="bg-gradient-to-r from-primary to-[#ff4b2b] rounded-[2rem] p-6 mb-6 shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col gap-6">
           <div className="flex justify-between items-start">
             <div className="bg-black/20 backdrop-blur-md px-4 py-2 rounded-full flex items-center gap-2">
@@ -80,55 +141,39 @@ export default function WingoPage() {
               <span className="font-bold text-sm">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Count Down</p>
+              <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Time Left</p>
               <div className="flex items-center gap-1.5">
-                <div className="bg-black/30 w-8 h-10 rounded-lg flex items-center justify-center text-xl font-bold">{time.m1}</div>
-                <div className="bg-black/30 w-8 h-10 rounded-lg flex items-center justify-center text-xl font-bold">{time.m2}</div>
-                <span className="text-xl font-bold mx-0.5">:</span>
-                <div className="bg-black/30 w-8 h-10 rounded-lg flex items-center justify-center text-xl font-bold text-[#00e676]">{time.s1}</div>
-                <div className="bg-black/30 w-8 h-10 rounded-lg flex items-center justify-center text-xl font-bold text-[#00e676]">{time.s2}</div>
+                <div className="bg-black/30 w-10 h-12 rounded-lg flex items-center justify-center text-2xl font-bold text-[#00e676]">{timeLeft.toString().padStart(2, '0')}</div>
               </div>
             </div>
           </div>
           <div>
             <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Period ID</p>
-            <p className="text-xl font-bold tracking-tight">2026043010000861</p>
+            <p className="text-xl font-bold tracking-tight">{currentPeriod}</p>
           </div>
         </div>
+        {timeLeft <= 5 && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 backdrop-blur-sm">
+            <p className="text-2xl font-bold text-red-500 uppercase tracking-widest">Locked</p>
+          </div>
+        )}
       </div>
 
       {/* Color Buttons */}
-      <div className="grid grid-cols-3 gap-3 mb-4">
-        <div className="space-y-2">
-          <Button className="w-full h-16 bg-[#00e676] hover:bg-[#00e676]/90 text-white rounded-2xl shadow-[0_4px_0_#00a856] active:translate-y-[2px] active:shadow-none font-bold text-lg">GREEN</Button>
-          <div className="bg-black/40 py-1 rounded-full text-center">
-            <span className="text-[8px] font-bold uppercase tracking-tighter text-green-500">Spend: ₹0</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Button className="w-full h-16 bg-[#9c27b0] hover:bg-[#9c27b0]/90 text-white rounded-2xl shadow-[0_4px_0_#7b1fa2] active:translate-y-[2px] active:shadow-none font-bold text-lg">VIOLET</Button>
-          <div className="bg-black/40 py-1 rounded-full text-center">
-            <span className="text-[8px] font-bold uppercase tracking-tighter text-purple-400">Spend: ₹0</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Button className="w-full h-16 bg-[#ff1744] hover:bg-[#ff1744]/90 text-white rounded-2xl shadow-[0_4px_0_#d50000] active:translate-y-[2px] active:shadow-none font-bold text-lg">RED</Button>
-          <div className="bg-black/40 py-1 rounded-full text-center">
-            <span className="text-[8px] font-bold uppercase tracking-tighter text-red-500">Spend: ₹0</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-3 gap-3 mb-6">
+        <Button onClick={() => handleBetClick('Green')} className="h-16 bg-[#00e676] hover:bg-[#00e676]/90 rounded-2xl font-bold text-lg">GREEN</Button>
+        <Button onClick={() => handleBetClick('Violet')} className="h-16 bg-[#9c27b0] hover:bg-[#9c27b0]/90 rounded-2xl font-bold text-lg">VIOLET</Button>
+        <Button onClick={() => handleBetClick('Red')} className="h-16 bg-[#ff1744] hover:bg-[#ff1744]/90 rounded-2xl font-bold text-lg">RED</Button>
       </div>
 
       {/* Number Grid */}
       <div className="bg-[#111] rounded-[2rem] p-6 mb-6">
         <div className="grid grid-cols-5 gap-4">
-          {numbers.map((num) => (
+          {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
             <Button
               key={num}
-              className={cn(
-                "w-14 h-14 rounded-full text-xl font-bold p-0 shadow-lg",
-                getNumberColor(num)
-              )}
+              onClick={() => handleBetClick(num.toString())}
+              className={cn("w-14 h-14 rounded-full text-xl font-bold p-0 shadow-lg", getNumberColor(num))}
             >
               {num}
             </Button>
@@ -138,38 +183,57 @@ export default function WingoPage() {
 
       {/* Big/Small Buttons */}
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="space-y-2">
-          <Button className="w-full h-16 bg-[#ff9100] hover:bg-[#ff9100]/90 text-white rounded-2xl shadow-[0_4px_0_#ef6c00] active:translate-y-[2px] active:shadow-none font-bold text-xl uppercase italic">Big</Button>
-          <div className="bg-black/40 py-1 rounded-full text-center">
-            <span className="text-[8px] font-bold uppercase tracking-tighter text-orange-400">Spend: ₹0</span>
-          </div>
-        </div>
-        <div className="space-y-2">
-          <Button className="w-full h-16 bg-[#2979ff] hover:bg-[#2979ff]/90 text-white rounded-2xl shadow-[0_4px_0_#2962ff] active:translate-y-[2px] active:shadow-none font-bold text-xl uppercase italic">Small</Button>
-          <div className="bg-black/40 py-1 rounded-full text-center">
-            <span className="text-[8px] font-bold uppercase tracking-tighter text-blue-400">Spend: ₹0</span>
-          </div>
+        <Button onClick={() => handleBetClick('Big')} className="h-16 bg-[#ff9100] hover:bg-[#ff9100]/90 rounded-2xl font-bold text-xl uppercase italic">Big</Button>
+        <Button onClick={() => handleBetClick('Small')} className="h-16 bg-[#2979ff] hover:bg-[#2979ff]/90 rounded-2xl font-bold text-xl uppercase italic">Small</Button>
+      </div>
+
+      {/* Recent Results Table */}
+      <div className="bg-[#111] rounded-[2rem] p-6 mb-24">
+        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Recent Results</h3>
+        <div className="space-y-3">
+          {recentResults?.map((res) => (
+            <div key={res.id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl">
+              <span className="text-[10px] font-mono opacity-60">{res.period}</span>
+              <div className="flex items-center gap-3">
+                <span className={cn("text-xs font-bold px-2 py-0.5 rounded", res.bs === 'Big' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500')}>{res.bs}</span>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold", getNumberColor(res.num))}>{res.num}</div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Amount Selector */}
-      <div className="bg-[#111] rounded-full p-2 flex justify-between items-center px-4">
-        {amounts.map((amount) => (
-          <Button
-            key={amount}
-            variant="ghost"
-            onClick={() => setSelectedAmount(amount)}
-            className={cn(
-              "w-12 h-12 rounded-full font-bold text-sm transition-all",
-              selectedAmount === amount 
-                ? "bg-[#00d2ff] text-black shadow-[0_0_15px_rgba(0,210,255,0.5)] scale-110" 
-                : "text-white/40 hover:text-white"
-            )}
-          >
-            {amount}
-          </Button>
-        ))}
-      </div>
+      {/* Betting Dialog */}
+      <Dialog open={isBettingOpen} onOpenChange={setIsBettingOpen}>
+        <DialogContent className="bg-[#111] border-white/10 text-white rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold uppercase tracking-tight">Place Bet: {betType}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            <div className="space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Amount</p>
+              <div className="flex justify-between gap-2">
+                {[10, 50, 100, 500, 1000].map((amt) => (
+                  <Button
+                    key={amt}
+                    variant="ghost"
+                    onClick={() => setSelectedAmount(amt)}
+                    className={cn(
+                      "flex-1 h-12 rounded-xl font-bold transition-all border border-white/5",
+                      selectedAmount === amt ? "bg-primary text-white" : "bg-white/5 text-white/40"
+                    )}
+                  >
+                    {amt}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <Button onClick={onConfirmBet} disabled={isPlacingBet} className="w-full h-14 bg-primary rounded-2xl font-bold text-lg">
+              {isPlacingBet ? <Loader2 className="animate-spin" /> : `BET ₹${selectedAmount}`}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

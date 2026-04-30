@@ -28,31 +28,47 @@
         "uid": { "type": "string" },
         "email": { "type": "string" },
         "balance": { "type": "number", "description": "Current balance in INR." },
+        "totalEarning": { "type": "number", "default": 0 },
         "ownReferralCode": { "type": "string", "description": "The user's unique code to share." },
         "referredBy": { "type": "string", "description": "The code used by this user when signing up." }
       },
       "required": ["uid", "email", "balance", "ownReferralCode"]
     },
-    "ReferralRecord": {
-      "title": "ReferralRecord",
+    "WingoResult": {
+      "title": "WingoResult",
       "type": "object",
-      "description": "Log of a successful referral transaction.",
       "properties": {
-        "id": { "type": "string" },
-        "referrerUid": { "type": "string" },
-        "referredUid": { "type": "string" },
-        "amount": { "type": "number" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "period": { "type": "string" },
+        "num": { "type": "number" },
+        "bs": { "type": "string", "enum": ["Big", "Small"] },
+        "color": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
-    "DownloadRecord": {
-      "title": "DownloadRecord",
+    "WingoBet": {
+      "title": "WingoBet",
       "type": "object",
       "properties": {
         "id": { "type": "string" },
-        "appId": { "type": "string" },
         "userId": { "type": "string" },
-        "downloadedAt": { "type": "string", "format": "date-time" }
+        "period": { "type": "string" },
+        "betType": { "type": "string" },
+        "amount": { "type": "number" },
+        "status": { "type": "string", "enum": ["pending", "won", "lost"] },
+        "payout": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["deposit", "withdraw", "bet", "win", "referral"] },
+        "amount": { "type": "number" },
+        "description": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -62,14 +78,6 @@
   "firestore": {
     "structure": [
       {
-        "path": "/apps/{appId}",
-        "definition": {
-          "entityName": "App",
-          "schema": { "$ref": "#/backend/entities/App" },
-          "description": "App catalog."
-        }
-      },
-      {
         "path": "/users/{userId}",
         "definition": {
           "entityName": "UserProfile",
@@ -78,19 +86,27 @@
         }
       },
       {
-        "path": "/referrals/{referralId}",
+        "path": "/wingo_results/{period}",
         "definition": {
-          "entityName": "ReferralRecord",
-          "schema": { "$ref": "#/backend/entities/ReferralRecord" },
-          "description": "History of referrals."
+          "entityName": "WingoResult",
+          "schema": { "$ref": "#/backend/entities/WingoResult" },
+          "description": "History of Wingo game results."
         }
       },
       {
-        "path": "/downloadRecords/{recordId}",
+        "path": "/bets/{betId}",
         "definition": {
-          "entityName": "DownloadRecord",
-          "schema": { "$ref": "#/backend/entities/DownloadRecord" },
-          "description": "Download logs."
+          "entityName": "WingoBet",
+          "schema": { "$ref": "#/backend/entities/WingoBet" },
+          "description": "User bets on Wingo."
+        }
+      },
+      {
+        "path": "/transactions/{txnId}",
+        "definition": {
+          "entityName": "Transaction",
+          "schema": { "$ref": "#/backend/entities/Transaction" },
+          "description": "History of all financial movements."
         }
       }
     ]
