@@ -2,16 +2,46 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { ChevronLeft, Zap, Loader2, IndianRupee, Gamepad2 } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { ChevronLeft, Zap, Loader2, IndianRupee, History, Trophy, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { placeK3Bet, settleK3Round } from './actions';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ROUND_TIME = 60;
+
+const SUM_MULTIPLIERS: Record<number, string> = {
+  3: '207.36X', 4: '69.12X', 5: '34.56X', 6: '20.74X', 7: '13.83X', 8: '9.88X',
+  9: '8.3X', 10: '7.68X', 11: '7.68X', 12: '8.3X', 13: '9.88X', 14: '13.83X',
+  15: '20.74X', 16: '34.56X', 17: '69.12X', 18: '207.36X'
+};
+
+function DiceFace({ value, className }: { value: number; className?: string }) {
+  const dots: Record<number, number[]> = {
+    1: [4],
+    2: [0, 8],
+    3: [0, 4, 8],
+    4: [0, 2, 6, 8],
+    5: [0, 2, 4, 6, 8],
+    6: [0, 2, 3, 5, 6, 8]
+  };
+
+  return (
+    <div className={cn("w-16 h-16 bg-red-600 rounded-xl relative shadow-inner p-2 grid grid-cols-3 gap-1 border-2 border-red-700/50", className)}>
+      {[...Array(9)].map((_, i) => (
+        <div key={i} className="flex items-center justify-center">
+          {dots[value]?.includes(i) && (
+            <div className={cn("w-2.5 h-2.5 rounded-full bg-white shadow-sm", value === 1 && "w-4 h-4 bg-yellow-400")} />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export default function K3LotrePage() {
   const { user } = useUser();
@@ -24,6 +54,10 @@ export default function K3LotrePage() {
   const [currentPeriod, setCurrentPeriod] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const [activeTab, setActiveTab] = useState('total');
+
+  const [animatingDice, setAnimatingDice] = useState([1, 1, 1]);
+  const [isDiceAnimating, setIsDiceAnimating] = useState(false);
 
   const lastSettledPeriod = useRef<string | null>(null);
 
@@ -33,6 +67,13 @@ export default function K3LotrePage() {
   }, [db, user?.uid]);
 
   const { data: profile } = useDoc(userDocRef);
+
+  const resultsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'k3_results'), orderBy('createdAt', 'desc'), limit(20));
+  }, [db]);
+
+  const { data: recentResults } = useCollection(resultsQuery);
 
   const generatePeriod = useCallback(() => {
     const now = new Date();
@@ -48,6 +89,16 @@ export default function K3LotrePage() {
     setCurrentPeriod(generatePeriod());
     setIsInitialized(true);
   }, [generatePeriod]);
+
+  // Handle dice animation when results change
+  useEffect(() => {
+    if (recentResults && recentResults.length > 0 && !isDiceAnimating) {
+      const latest = recentResults[0];
+      if (latest.dice) {
+        setAnimatingDice(latest.dice);
+      }
+    }
+  }, [recentResults, isDiceAnimating]);
 
   useEffect(() => {
     if (!isInitialized || !currentPeriod) return;
@@ -65,7 +116,23 @@ export default function K3LotrePage() {
     if (lastSettledPeriod.current !== prevPeriod) {
       lastSettledPeriod.current = prevPeriod;
       startTransition(() => {
-        settleK3Round(prevPeriod);
+        setIsDiceAnimating(true);
+        // Simulate dice roll animation
+        const interval = setInterval(() => {
+          setAnimatingDice([
+            Math.floor(Math.random() * 6) + 1,
+            Math.floor(Math.random() * 6) + 1,
+            Math.floor(Math.random() * 6) + 1,
+          ]);
+        }, 100);
+
+        settleK3Round(prevPeriod).then((res) => {
+          clearInterval(interval);
+          if (res.success && res.result) {
+            setAnimatingDice(res.result.dice);
+          }
+          setIsDiceAnimating(false);
+        });
       });
     }
   }, [currentPeriod, isInitialized]);
@@ -125,126 +192,151 @@ export default function K3LotrePage() {
   if (!isInitialized) return null;
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#070123] text-white pb-24 font-body">
-      <div className="flex items-center justify-between mb-8">
+    <div className="container mx-auto px-0 max-w-lg min-h-screen bg-[#070123] text-white pb-24 font-body overflow-x-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between p-4 bg-[#0a043c] border-b border-white/5">
         <Link href="/earn">
-          <Button variant="ghost" size="icon" className="text-white">
-            <ChevronLeft className="h-6 w-6" />
-          </Button>
+          <ChevronLeft className="h-6 w-6" />
         </Link>
-        <h1 className="text-2xl font-black italic tracking-wider uppercase">K3 Lotre</h1>
-        <Button variant="ghost" size="icon" className="text-white">
-          <Gamepad2 className="h-6 w-6" />
-        </Button>
+        <h1 className="text-xl font-bold italic tracking-wider">K3 Lotre</h1>
+        <Info className="h-6 w-6 text-white/60" />
       </div>
 
-      <div className="flex justify-center mb-6">
-        <div className="bg-gradient-to-b from-[#1a144e] to-[#070123] border border-blue-500/40 rounded-xl px-10 py-3 flex flex-col items-center shadow-lg relative overflow-hidden group">
-          <Zap className="w-5 h-5 text-blue-400 mb-1" />
-          <span className="text-[10px] font-bold uppercase tracking-widest text-blue-200">K3 1 MIN</span>
-          <div className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 shadow-[0_0_10px_#3b82f6]" />
-        </div>
-      </div>
-
-      <div className="bg-[#1a144e]/60 rounded-[2rem] p-6 mb-8 border border-white/5 shadow-2xl relative">
-        <div className="flex justify-between items-start mb-10">
-          <div className="bg-black/40 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10">
-            <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
-              <IndianRupee className="w-2.5 h-2.5 text-black" />
-            </div>
-            <span className="text-xs font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
-          </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-1">Period</p>
-            <p className="text-lg font-bold tracking-tight">{currentPeriod}</p>
-          </div>
-        </div>
-
-        <div className="bg-black/20 rounded-2xl p-4 flex items-center justify-between mb-10 border border-white/5">
-          <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-blue-300">Counting</span>
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40 mb-4">Next Draw In</p>
-          <div className="flex items-center gap-2">
-            <div className="bg-[#070123] w-12 h-16 rounded-lg flex items-center justify-center text-3xl font-black text-blue-400 border border-white/5">{timerParts.m1}</div>
-            <div className="bg-[#070123] w-12 h-16 rounded-lg flex items-center justify-center text-3xl font-black text-blue-400 border border-white/5">{timerParts.m2}</div>
-            <span className="text-2xl font-bold text-blue-500 mx-1">:</span>
-            <div className="bg-[#070123] w-12 h-16 rounded-lg flex items-center justify-center text-3xl font-black text-blue-400 border border-white/5">{timerParts.s1}</div>
-            <div className="bg-[#070123] w-12 h-16 rounded-lg flex items-center justify-center text-3xl font-black text-blue-400 border border-white/5">{timerParts.s2}</div>
-          </div>
-        </div>
-
-        {timeLeft <= 5 && (
-          <div className="absolute inset-0 bg-black/60 rounded-[2rem] flex items-center justify-center z-20 backdrop-blur-sm">
-            <p className="text-2xl font-black text-red-500 uppercase tracking-widest italic">Locked</p>
-          </div>
-        )}
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mb-8">
-        <div className="space-y-2">
-          <button 
-            onClick={() => handleBet('Big')}
-            className="w-full h-20 bg-gradient-to-br from-orange-400 to-orange-600 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <span className="text-2xl font-black italic">BIG</span>
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          <button 
-            onClick={() => handleBet('Small')}
-            className="w-full h-20 bg-gradient-to-br from-blue-400 to-blue-600 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <span className="text-2xl font-black italic">SMALL</span>
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          <button 
-            onClick={() => handleBet('Odd')}
-            className="w-full h-20 bg-gradient-to-br from-pink-500 to-pink-700 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <span className="text-2xl font-black italic">ODD</span>
-          </button>
-        </div>
-
-        <div className="space-y-2">
-          <button 
-            onClick={() => handleBet('Even')}
-            className="w-full h-20 bg-gradient-to-br from-green-400 to-green-600 rounded-2xl flex items-center justify-center shadow-lg active:scale-95 transition-transform"
-          >
-            <span className="text-2xl font-black italic">EVEN</span>
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-black/40 p-5 rounded-full border border-white/5 shadow-inner">
+      <div className="p-4 space-y-4">
+        {/* Period & Timer */}
         <div className="flex justify-between items-center">
-          {[1, 5, 10, 20, 50, 100].map((val) => (
-            <button
-              key={val}
-              onClick={() => setSelectedChip(val)}
-              className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black transition-all relative",
-                selectedChip === val 
-                  ? "bg-blue-500 text-white scale-125 shadow-[0_0_20px_rgba(59,130,246,0.6)] z-10 border-2 border-white/20" 
-                  : "bg-white/5 text-white/30"
-              )}
-            >
-              {val}
-            </button>
-          ))}
+          <div className="bg-white/5 rounded-full px-4 py-1 flex items-center gap-2 border border-white/10">
+            <span className="text-sm font-bold tracking-tight">{currentPeriod}</span>
+          </div>
+          <div className="flex gap-1.5 items-center">
+            <div className="bg-[#111] w-8 h-10 rounded-md flex items-center justify-center text-xl font-black text-blue-400 border border-white/10">{timerParts.s1}</div>
+            <div className="bg-[#111] w-8 h-10 rounded-md flex items-center justify-center text-xl font-black text-blue-400 border border-white/10">{timerParts.s2}</div>
+          </div>
+        </div>
+
+        {/* Dice Slot Container */}
+        <div className="relative bg-[#00c99e] p-6 rounded-[2rem] border-4 border-[#009c7a] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
+          <div className="flex justify-center gap-4 py-4 bg-black/20 rounded-2xl border border-black/10">
+            {animatingDice.map((val, idx) => (
+              <DiceFace key={idx} value={val} className={isDiceAnimating ? "animate-bounce" : ""} />
+            ))}
+          </div>
+          <div className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-8 bg-[#009c7a] rounded-r-lg" />
+          <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-8 bg-[#009c7a] rounded-l-lg" />
+        </div>
+
+        {/* Betting Tabs */}
+        <Tabs defaultValue="total" className="w-full">
+          <TabsList className="grid grid-cols-4 bg-[#1a144e] p-1 rounded-xl h-12">
+            <TabsTrigger value="total" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">Total</TabsTrigger>
+            <TabsTrigger value="2same" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">2 same</TabsTrigger>
+            <TabsTrigger value="3same" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">3 same</TabsTrigger>
+            <TabsTrigger value="diff" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">Different</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="total" className="space-y-6">
+            {/* Number Grid */}
+            <div className="grid grid-cols-4 gap-3 mt-6">
+              {Object.entries(SUM_MULTIPLIERS).map(([num, mult]) => (
+                <button
+                  key={num}
+                  onClick={() => handleBet(num)}
+                  className="flex flex-col items-center justify-center aspect-square rounded-full border-2 border-white/10 bg-gradient-to-b from-white/5 to-white/10 hover:border-[#00c99e] transition-all"
+                  style={{
+                    background: parseInt(num) % 2 === 0 ? 'linear-gradient(to bottom, #00c99e22, #00c99e44)' : 'linear-gradient(to bottom, #ff174422, #ff174444)'
+                  }}
+                >
+                  <span className="text-xl font-black">{num}</span>
+                  <span className="text-[8px] font-bold opacity-60">{mult}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* BS / OE Buttons */}
+            <div className="grid grid-cols-4 gap-3">
+              <button onClick={() => handleBet('Small')} className="h-14 bg-[#2979ff] rounded-xl font-black text-sm italic shadow-lg active:scale-95">SMALL<br/><span className="text-[10px] opacity-60">2X</span></button>
+              <button onClick={() => handleBet('Big')} className="h-14 bg-[#ff9100] rounded-xl font-black text-sm italic shadow-lg active:scale-95">BIG<br/><span className="text-[10px] opacity-60">2X</span></button>
+              <button onClick={() => handleBet('Even')} className="h-14 bg-[#00e676] rounded-xl font-black text-sm italic shadow-lg active:scale-95">EVEN<br/><span className="text-[10px] opacity-60">2X</span></button>
+              <button onClick={() => handleBet('Odd')} className="h-14 bg-[#ff1744] rounded-xl font-black text-sm italic shadow-lg active:scale-95">ODD<br/><span className="text-[10px] opacity-60">2X</span></button>
+            </div>
+          </TabsContent>
+        </Tabs>
+
+        {/* Chip Selector */}
+        <div className="bg-black/40 p-3 rounded-full border border-white/5 mt-4">
+          <div className="flex justify-between items-center px-1">
+            {[1, 5, 10, 20, 50, 100].map((val) => (
+              <button
+                key={val}
+                onClick={() => setSelectedChip(val)}
+                className={cn(
+                  "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black transition-all",
+                  selectedChip === val 
+                    ? "bg-[#00c99e] text-white scale-110 shadow-[0_0_15px_rgba(0,201,158,0.5)] border-2 border-white/20" 
+                    : "bg-white/5 text-white/30"
+                )}
+              >
+                {val}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Wallet Display */}
+        <div className="flex justify-center mt-4">
+          <div className="bg-black/40 px-6 py-2 rounded-full flex items-center gap-3 border border-white/5">
+            <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center">
+              <IndianRupee className="w-3 h-3 text-black" />
+            </div>
+            <span className="font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+          </div>
+        </div>
+
+        {/* Results History */}
+        <div className="mt-8 space-y-4">
+          <div className="flex gap-2">
+            <Button variant="ghost" className="bg-[#00c99e] text-white rounded-lg h-10 px-6 text-sm font-bold">Game history</Button>
+            <Button variant="ghost" className="bg-white/5 text-white/60 rounded-lg h-10 px-6 text-sm font-bold">Chart</Button>
+            <Button variant="ghost" className="bg-white/5 text-white/60 rounded-lg h-10 px-6 text-sm font-bold">My history</Button>
+          </div>
+
+          <div className="bg-[#1a144e] rounded-2xl overflow-hidden border border-white/5">
+            <table className="w-full text-center text-sm">
+              <thead className="bg-black/20">
+                <tr className="h-12 text-white/40 uppercase text-[10px] font-black tracking-widest">
+                  <th className="px-4">Period</th>
+                  <th className="px-4">Sum</th>
+                  <th className="px-4">Results</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {recentResults?.map((res) => (
+                  <tr key={res.id} className="h-14 hover:bg-white/5 transition-colors">
+                    <td className="font-mono text-xs opacity-60">{res.period}</td>
+                    <td className="font-bold text-lg text-blue-400">{res.sum}</td>
+                    <td>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className={cn("px-2 py-0.5 rounded text-[10px] font-black uppercase", res.bs === 'Big' ? 'bg-orange-500/20 text-orange-500' : 'bg-blue-500/20 text-blue-500')}>{res.bs}</span>
+                        <span className={cn("px-2 py-0.5 rounded text-[10px] font-black uppercase", res.oe === 'Even' ? 'bg-green-500/20 text-green-500' : 'bg-pink-500/20 text-pink-500')}>{res.oe}</span>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {isPlacingBet && (
-        <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 backdrop-blur-sm">
+          <Loader2 className="w-10 h-10 animate-spin text-[#00c99e]" />
+        </div>
+      )}
+
+      {timeLeft <= 5 && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-40 backdrop-blur-sm pointer-events-none">
+          <p className="text-4xl font-black text-red-500 uppercase tracking-[0.2em] italic -rotate-12 border-4 border-red-500 px-8 py-2 rounded-2xl">Locked</p>
         </div>
       )}
     </div>

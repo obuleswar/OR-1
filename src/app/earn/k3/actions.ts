@@ -8,6 +8,19 @@ import { firebaseConfig } from '@/firebase/config';
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApps()[0];
 const db = getFirestore(app);
 
+const K3_MULTIPLIERS: Record<string, number> = {
+  '3': 207.36, '18': 207.36,
+  '4': 69.12, '17': 69.12,
+  '5': 34.56, '16': 34.56,
+  '6': 20.74, '15': 20.74,
+  '7': 13.83, '14': 13.83,
+  '8': 9.88, '13': 9.88,
+  '9': 8.3, '12': 8.3,
+  '10': 7.68, '11': 7.68,
+  'Big': 1.9, 'Small': 1.9,
+  'Odd': 1.9, 'Even': 1.9
+};
+
 export async function placeK3Bet(userId: string, period: string, betType: string, amount: number) {
   try {
     const userRef = doc(db, 'users', userId);
@@ -105,10 +118,15 @@ export async function settleK3Round(period: string) {
     for (const betDoc of betsSnap.docs) {
       const bet = betDoc.data();
       let won = false;
-      if (bet.betType === bs || bet.betType === oe) won = true;
+      
+      if (bet.betType === bs || bet.betType === oe || bet.betType === sum.toString()) {
+        won = true;
+      }
 
       if (won) {
-        const payout = bet.amount * 1.9;
+        const multiplier = K3_MULTIPLIERS[bet.betType] || 1.9;
+        const payout = bet.amount * multiplier;
+        
         batch.update(doc(db, 'bets', betDoc.id), {
           status: 'won',
           payout
