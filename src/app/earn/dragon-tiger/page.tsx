@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -205,7 +206,7 @@ export default function DragonTigerPage() {
           disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic mb-1">DRAGON</span>
-          <span className="text-[10px] font-bold opacity-60">1.90</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
         </button>
 
         <button 
@@ -214,7 +215,7 @@ export default function DragonTigerPage() {
           disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic text-[#00e676] mb-1">TIE</span>
-          <span className="text-[10px] font-bold text-white/40">9.0</span>
+          <span className="text-[10px] font-bold text-white/40">9.00x</span>
         </button>
 
         <button 
@@ -223,7 +224,7 @@ export default function DragonTigerPage() {
           disabled={timeLeft <= 5}
         >
           <span className="text-xl font-black italic mb-1">TIGER</span>
-          <span className="text-[10px] font-bold opacity-60">1.90</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
         </button>
       </div>
 

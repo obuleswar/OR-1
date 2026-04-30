@@ -35,6 +35,7 @@ export async function placeBet(userId: string, period: string, betType: string, 
     batch.set(betRef, {
       userId,
       period,
+      gameType: 'wingo',
       betType,
       amount,
       status: 'pending',
@@ -90,7 +91,12 @@ export async function settleRound(period: string) {
     }
 
     // Payout Logic for all pending bets in this period
-    const betsQuery = query(collection(db, 'bets'), where('period', '==', period), where('status', '==', 'pending'));
+    const betsQuery = query(
+      collection(db, 'bets'), 
+      where('period', '==', period), 
+      where('status', '==', 'pending'),
+      where('gameType', '==', 'wingo')
+    );
     const betsSnap = await getDocs(betsQuery);
 
     if (betsSnap.empty) {
@@ -113,7 +119,7 @@ export async function settleRound(period: string) {
 
       if (won) {
         // Multiplier logic
-        let multiplier = 2;
+        let multiplier = 1.9;
         if (['violet'].includes(bet.betType.toLowerCase())) multiplier = 4.5;
         if (!isNaN(parseInt(bet.betType))) multiplier = 9;
         

@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -150,9 +151,18 @@ export default function WingoPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <Button onClick={() => handleBetClick('Green')} className="h-16 bg-[#00e676] rounded-2xl font-bold text-lg">GREEN</Button>
-        <Button onClick={() => handleBetClick('Violet')} className="h-16 bg-[#9c27b0] rounded-2xl font-bold text-lg">VIOLET</Button>
-        <Button onClick={() => handleBetClick('Red')} className="h-16 bg-[#ff1744] rounded-2xl font-bold text-lg">RED</Button>
+        <Button onClick={() => handleBetClick('Green')} className="h-20 bg-[#00e676] rounded-2xl flex flex-col items-center justify-center">
+          <span className="text-lg font-bold">GREEN</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
+        </Button>
+        <Button onClick={() => handleBetClick('Violet')} className="h-20 bg-[#9c27b0] rounded-2xl flex flex-col items-center justify-center">
+          <span className="text-lg font-bold">VIOLET</span>
+          <span className="text-[10px] font-bold opacity-60">4.50x</span>
+        </Button>
+        <Button onClick={() => handleBetClick('Red')} className="h-20 bg-[#ff1744] rounded-2xl flex flex-col items-center justify-center">
+          <span className="text-lg font-bold">RED</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
+        </Button>
       </div>
 
       <div className="bg-[#111] rounded-[2rem] p-6 mb-6">
@@ -170,8 +180,14 @@ export default function WingoPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <Button onClick={() => handleBetClick('Big')} className="h-16 bg-[#ff9100] rounded-2xl font-bold text-xl uppercase italic">Big</Button>
-        <Button onClick={() => handleBetClick('Small')} className="h-16 bg-[#2979ff] rounded-2xl font-bold text-xl uppercase italic">Small</Button>
+        <Button onClick={() => handleBetClick('Big')} className="h-20 bg-[#ff9100] rounded-2xl flex flex-col items-center justify-center">
+          <span className="text-xl font-black uppercase italic">Big</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
+        </Button>
+        <Button onClick={() => handleBetClick('Small')} className="h-20 bg-[#2979ff] rounded-2xl flex flex-col items-center justify-center">
+          <span className="text-xl font-black uppercase italic">Small</span>
+          <span className="text-[10px] font-bold opacity-60">1.90x</span>
+        </Button>
       </div>
 
       <div className="bg-[#111] rounded-[2rem] p-6 mb-24">

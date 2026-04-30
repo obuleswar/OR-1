@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
@@ -169,12 +170,24 @@ export default function K3LotrePage() {
           <TabsContent value="total" className="pt-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => handleBet('Small')} className="h-20 bg-[#2979ff] rounded-2xl font-black text-sm italic">SMALL</button>
-                <button onClick={() => handleBet('Big')} className="h-20 bg-[#ff9100] rounded-2xl font-black text-sm italic">BIG</button>
+                <button onClick={() => handleBet('Small')} className="h-24 bg-[#2979ff] rounded-2xl flex flex-col items-center justify-center">
+                  <span className="text-sm font-black italic">SMALL</span>
+                  <span className="text-[10px] font-bold opacity-60">1.90x</span>
+                </button>
+                <button onClick={() => handleBet('Big')} className="h-24 bg-[#ff9100] rounded-2xl flex flex-col items-center justify-center">
+                  <span className="text-sm font-black italic">BIG</span>
+                  <span className="text-[10px] font-bold opacity-60">1.90x</span>
+                </button>
               </div>
               <div className="grid grid-cols-2 gap-3">
-                <button onClick={() => handleBet('Even')} className="h-20 bg-[#00e676] rounded-2xl font-black text-sm italic">EVEN</button>
-                <button onClick={() => handleBet('Odd')} className="h-20 bg-[#ff1744] rounded-2xl font-black text-sm italic">ODD</button>
+                <button onClick={() => handleBet('Even')} className="h-24 bg-[#00e676] rounded-2xl flex flex-col items-center justify-center">
+                  <span className="text-sm font-black italic">EVEN</span>
+                  <span className="text-[10px] font-bold opacity-60">1.90x</span>
+                </button>
+                <button onClick={() => handleBet('Odd')} className="h-24 bg-[#ff1744] rounded-2xl flex flex-col items-center justify-center">
+                  <span className="text-sm font-black italic">ODD</span>
+                  <span className="text-[10px] font-bold opacity-60">1.90x</span>
+                </button>
               </div>
             </div>
           </TabsContent>
