@@ -8,20 +8,35 @@ import { LayoutDashboard } from 'lucide-react';
 
 function CustomLogo() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-10 w-10 text-primary"
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2 22l5-1.338C8.47 21.513 10.179 22 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2z" />
-    </svg>
+    <div className="flex items-center justify-center bg-black/40 rounded-xl p-1 w-12 h-10 border border-white/5 shadow-inner">
+      <svg
+        viewBox="0 0 50 40"
+        className="h-full w-full"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <text
+          x="50%"
+          y="50%"
+          dominantBaseline="central"
+          textAnchor="middle"
+          fill="#ff0000"
+          style={{
+            fontSize: '26px',
+            fontWeight: '900',
+            fontFamily: 'system-ui, sans-serif',
+            letterSpacing: '-2px',
+          }}
+        >
+          OR
+        </text>
+      </svg>
+    </div>
   );
 }
 
 function HeaderLogo() {
   return (
-    <Link href="/" className="flex items-center gap-3 font-bold text-2xl tracking-tighter text-white">
+    <Link href="/" className="flex items-center gap-3 font-bold text-2xl tracking-tighter text-white hover:opacity-90 transition-opacity">
       <CustomLogo />
       OR WALLET
     </Link>
@@ -60,7 +75,7 @@ export function Header() {
                 </div>
               ) : (
                 <Link href="/login">
-                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-white">Sign In</Button>
+                  <Button size="sm" className="bg-primary hover:bg-primary/90 text-white font-bold">Sign In</Button>
                 </Link>
               )}
             </>
