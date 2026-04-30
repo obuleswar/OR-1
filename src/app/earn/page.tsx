@@ -1,19 +1,23 @@
 'use client';
 
-import { useUser } from '@/firebase';
+import { useState } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { 
-  Tv, 
-  Gamepad2, 
-  Bomb, 
-  Dices, 
-  Layers, 
-  Sword, 
+import {
+  Tv,
+  Gamepad2,
+  Bomb,
+  Dices,
+  Layers,
+  Sword,
   Users,
-  ChevronRight
+  Copy,
+  CheckCircle2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
 
 const EARNING_TASKS = [
   {
@@ -77,18 +81,38 @@ const EARNING_TASKS = [
 
 export default function EarnPage() {
   const { user, isUserLoading } = useUser();
+  const db = useFirestore();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+
+  const userDocRef = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return doc(db, 'users', user.uid);
+  }, [db, user?.uid]);
+
+  const { data: profile } = useDoc(userDocRef);
+
+  const copyReferralCode = (code: string) => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "Code Copied!",
+      description: "Your referral code is ready to share.",
+    });
+  };
 
   if (isUserLoading) {
-    return <div className="container mx-auto p-8 text-center">Loading earning tasks...</div>;
+    return <div className="container mx-auto p-8 text-center text-muted-foreground">Loading earning tasks...</div>;
   }
 
   if (!user) {
     return (
       <div className="container mx-auto p-8 text-center h-[60vh] flex flex-col items-center justify-center">
-        <h2 className="text-2xl font-bold mb-4">Please sign in</h2>
+        <h2 className="text-2xl font-bold mb-4 text-white">Please sign in</h2>
         <p className="text-muted-foreground mb-6">You need an account to start earning.</p>
         <Link href="/login">
-          <button className="bg-primary text-white px-8 py-3 rounded-full font-bold">Sign In Now</button>
+          <button className="bg-primary text-white px-8 py-3 rounded-full font-bold uppercase tracking-wider">Sign In Now</button>
         </Link>
       </div>
     );
@@ -99,28 +123,54 @@ export default function EarnPage() {
       <div className="grid grid-cols-2 gap-4">
         {EARNING_TASKS.map((task) => {
           const Icon = task.icon;
+          const isRefer = task.id === 'refer-earn';
+
           return (
-            <Link key={task.id} href={task.id === 'refer-earn' ? '/earn' : '#'}>
-              <Card className={cn(
-                "bg-[#111111] border-white/5 hover:bg-[#161616] transition-all cursor-pointer h-52 group",
+            <Card
+              key={task.id}
+              className={cn(
+                "bg-[#111111] border-white/5 hover:bg-[#161616] transition-all cursor-pointer h-52 group overflow-hidden relative",
                 task.highlight && "border-primary/30"
-              )}>
-                <CardContent className="p-0 h-full flex flex-col items-center justify-center text-center">
-                  {/* Icon Container */}
-                  <div className="w-16 h-16 rounded-2xl bg-[#1a1a1a] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                    <Icon className={cn("w-8 h-8", task.color)} />
+              )}
+              onClick={() => {
+                if (isRefer && profile?.ownReferralCode) {
+                  copyReferralCode(profile.ownReferralCode);
+                }
+              }}
+            >
+              <CardContent className="p-0 h-full flex flex-col items-center justify-center text-center">
+                {/* Icon Container */}
+                <div className="w-16 h-16 rounded-2xl bg-[#1a1a1a] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform relative">
+                  <Icon className={cn("w-8 h-8", task.color)} />
+                  {isRefer && copied && (
+                    <div className="absolute -top-1 -right-1 bg-green-500 rounded-full p-0.5">
+                      <CheckCircle2 className="w-3 h-3 text-white" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Text Content */}
+                <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-1">
+                  {task.title}
+                </h3>
+
+                {isRefer && profile?.ownReferralCode ? (
+                  <div className="space-y-1">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-primary opacity-90 flex items-center gap-1 justify-center">
+                      <Copy className="w-2.5 h-2.5" />
+                      {profile.ownReferralCode}
+                    </p>
+                    <p className="text-[8px] font-bold uppercase tracking-tighter text-muted-foreground opacity-40">
+                      Tap to Copy
+                    </p>
                   </div>
-                  
-                  {/* Text Content */}
-                  <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-1">
-                    {task.title}
-                  </h3>
+                ) : (
                   <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-60">
                     {task.subtitle}
                   </p>
-                </CardContent>
-              </Card>
-            </Link>
+                )}
+              </CardContent>
+            </Card>
           );
         })}
       </div>
