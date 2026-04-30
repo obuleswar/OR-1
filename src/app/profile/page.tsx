@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useUser, useAuth } from '@/firebase';
@@ -6,16 +7,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LogOut, User, Mail, Shield } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function ProfilePage() {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
   const router = useRouter();
 
+  useEffect(() => {
+    if (!isUserLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, isUserLoading, router]);
+
   if (isUserLoading) return <div className="container mx-auto p-8 text-center">Loading profile...</div>;
 
   if (!user) {
-    router.push('/login');
     return null;
   }
 

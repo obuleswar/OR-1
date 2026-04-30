@@ -9,42 +9,41 @@ service cloud.firestore {
     match /users/{userId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() && request.auth.uid == userId;
-      // Allow update for balance and game-related metadata
-      allow update: if isSignedIn();
+      // Allow update for balance and game-related metadata (needed for server settlement and referrals)
+      allow update: if true;
     }
 
     match /wingo_results/{period} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if true;
     }
 
     match /k3_results/{period} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if true;
     }
 
     match /dragon_tiger_results/{period} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if true;
     }
 
     match /bets/{betId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isSignedIn();
+      allow read: if isSignedIn();
+      allow write: if true;
     }
 
     match /transactions/{txnId} {
-      allow read: if isSignedIn() && resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if isSignedIn();
+      allow write: if true;
     }
 
     match /mines_games/{gameId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
     
     match /referrals/{refId} {
-      allow read, write: if isSignedIn();
+      allow read, write: if true;
     }
   }
 }

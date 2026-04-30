@@ -109,6 +109,16 @@
         "description": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
+    },
+    "Referral": {
+      "title": "Referral",
+      "type": "object",
+      "properties": {
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -170,6 +180,14 @@
           "entityName": "Transaction",
           "schema": { "$ref": "#/backend/entities/Transaction" },
           "description": "History of all financial movements."
+        }
+      },
+      {
+        "path": "/referrals/{refId}",
+        "definition": {
+          "entityName": "Referral",
+          "schema": { "$ref": "#/backend/entities/Referral" },
+          "description": "History of referral bonuses."
         }
       }
     ]
