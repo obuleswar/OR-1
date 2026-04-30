@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
-import { Menu } from 'lucide-react';
 
 function HeaderLogo() {
   return (
@@ -51,7 +50,6 @@ export function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-[#0a0a0a] shadow-sm">
       <div className="container mx-auto flex h-20 items-center justify-between px-4">
         <div className="flex items-center gap-4">
-            <Menu className="h-8 w-8 text-white sm:hidden cursor-pointer" />
             <HeaderLogo />
         </div>
         <nav className="flex items-center gap-4">
