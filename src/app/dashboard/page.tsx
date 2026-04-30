@@ -3,9 +3,9 @@
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, Building2, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -17,21 +17,31 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 
-const ADMIN_UPI_ID = "orwallet@okaxis"; // Placeholder UPI ID
+const ADMIN_UPI_ID = "orwallet@okaxis";
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
   
+  // Deposit States
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
   const [utr, setUtr] = useState('');
-  const [email, setEmail] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [depositEmail, setDepositEmail] = useState('');
+  const [isDepositing, setIsDepositing] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Withdrawal States
+  const [isWithdrawOpen, setIsWithdrawOpen] = useState(false);
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [withdrawMethod, setWithdrawMethod] = useState('upi');
+  const [withdrawDetails, setWithdrawDetails] = useState('');
+  const [withdrawEmail, setWithdrawEmail] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -55,43 +65,22 @@ export default function DashboardPage() {
     const amount = parseFloat(depositAmount);
     
     if (!depositAmount || isNaN(amount) || amount <= 0) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid amount',
-        description: 'Please enter a valid amount to deposit.',
-      });
+      toast({ variant: 'destructive', title: 'Invalid amount', description: 'Please enter a valid amount.' });
       return;
     }
 
-    if (!utr || utr.length < 6) {
-      toast({
-        variant: 'destructive',
-        title: 'Invalid UTR',
-        description: 'Please enter a valid 12-digit UTR number.',
-      });
+    if (!utr) {
+      toast({ variant: 'destructive', title: 'Invalid UTR', description: 'Please enter your Transaction ID.' });
       return;
     }
 
-    setIsSubmitting(true);
+    setIsDepositing(true);
     try {
       if (userDocRef && db) {
-        // In a real app, this would be a "Pending" status record for admin approval
-        // For this prototype, we'll increment the balance and log the transaction
         await updateDoc(userDocRef, {
           balance: increment(amount),
           lastDepositAt: serverTimestamp(),
         });
-
-        // Optional: log detailed transaction info if collection exists or just simulate
-        // await addDoc(collection(db, 'transactions'), {
-        //   userId: user?.uid,
-        //   type: 'deposit',
-        //   amount,
-        //   utr,
-        //   email,
-        //   status: 'completed',
-        //   timestamp: serverTimestamp(),
-        // });
 
         toast({
           title: 'Deposit submitted',
@@ -100,16 +89,56 @@ export default function DashboardPage() {
         setIsDepositOpen(false);
         setDepositAmount('');
         setUtr('');
-        setEmail('');
+        setDepositEmail('');
       }
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Deposit failed',
-        description: error.message,
-      });
+      toast({ variant: 'destructive', title: 'Deposit failed', description: error.message });
     } finally {
-      setIsSubmitting(false);
+      setIsDepositing(false);
+    }
+  };
+
+  const handleWithdraw = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(withdrawAmount);
+    const currentBalance = profile?.balance || 0;
+
+    if (!withdrawAmount || isNaN(amount) || amount <= 0) {
+      toast({ variant: 'destructive', title: 'Invalid amount', description: 'Please enter a valid amount.' });
+      return;
+    }
+
+    if (amount > currentBalance) {
+      toast({ variant: 'destructive', title: 'Insufficient Funds', description: 'You do not have enough balance to withdraw this amount.' });
+      return;
+    }
+
+    if (!withdrawDetails) {
+      toast({ variant: 'destructive', title: 'Missing Details', description: 'Please enter your payment details.' });
+      return;
+    }
+
+    setIsWithdrawing(true);
+    try {
+      if (userDocRef && db) {
+        await updateDoc(userDocRef, {
+          balance: increment(-amount),
+          lastWithdrawAt: serverTimestamp(),
+        });
+
+        toast({
+          title: 'Withdrawal processing',
+          description: `₹${amount.toLocaleString()} has been requested for withdrawal.`,
+        });
+        setIsWithdrawOpen(false);
+        setWithdrawAmount('');
+        setWithdrawDetails('');
+        setWithdrawEmail('');
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Withdrawal failed', description: error.message });
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -143,7 +172,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Button className="bg-[#1a1a1a] hover:bg-black text-white h-14 rounded-2xl border-none font-bold uppercase text-xs tracking-wider shadow-lg">
+            <Button 
+              onClick={() => setIsWithdrawOpen(true)}
+              className="bg-[#1a1a1a] hover:bg-black text-white h-14 rounded-2xl border-none font-bold uppercase text-xs tracking-wider shadow-lg"
+            >
               <Wallet className="w-4 h-4 mr-2" />
               Withdraw
             </Button>
@@ -159,16 +191,11 @@ export default function DashboardPage() {
         <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
       </Card>
 
-      <div className="pt-4 px-1">
-        <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground leading-relaxed opacity-40">
-          Securely manage your INR balance. Payouts are processed to your linked account within 24 hours.
-        </p>
-      </div>
-
+      {/* Deposit Dialog */}
       <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
         <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold uppercase tracking-tight">Deposit Funds</DialogTitle>
+            <DialogTitle className="text-xl font-bold uppercase tracking-tight text-primary">Deposit Funds</DialogTitle>
             <DialogDescription className="text-muted-foreground">
               Transfer funds via UPI and provide details below.
             </DialogDescription>
@@ -182,73 +209,119 @@ export default function DashboardPage() {
                 {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
               </Button>
             </div>
-            <p className="text-[9px] text-muted-foreground italic">* Make payment to this ID then fill UTR below.</p>
           </div>
 
           <form onSubmit={handleDeposit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="amount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Amount (INR)
-              </Label>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50 font-bold">₹</span>
-                <Input
-                  id="amount"
-                  type="number"
-                  placeholder="0.00"
-                  className="pl-8 bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
-                  value={depositAmount}
-                  onChange={(e) => setDepositAmount(e.target.value)}
-                  required
-                />
-              </div>
+              <Label htmlFor="d-amount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Amount (INR)</Label>
+              <Input
+                id="d-amount"
+                type="number"
+                placeholder="0.00"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                value={depositAmount}
+                onChange={(e) => setDepositAmount(e.target.value)}
+                required
+              />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="utr" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                UTR / Transaction ID
-              </Label>
+              <Label htmlFor="utr" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">UTR / Transaction ID</Label>
               <Input
                 id="utr"
                 placeholder="12 Digit UTR Number"
-                className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
                 value={utr}
                 onChange={(e) => setUtr(e.target.value)}
                 required
               />
             </div>
-
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                Email Address
-              </Label>
+              <Label htmlFor="d-email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Address</Label>
               <Input
-                id="email"
+                id="d-email"
                 type="email"
                 placeholder="your@email.com"
-                className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                value={depositEmail}
+                onChange={(e) => setDepositEmail(e.target.value)}
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isDepositing} className="w-full bg-primary h-12 rounded-xl font-bold uppercase">
+              {isDepositing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Deposit'}
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Withdrawal Dialog */}
+      <Dialog open={isWithdrawOpen} onOpenChange={setIsWithdrawOpen}>
+        <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl overflow-hidden">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold uppercase tracking-tight text-white">Withdraw Funds</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Withdraw your balance to your UPI or Bank Account.
+            </DialogDescription>
+          </DialogHeader>
+
+          <form onSubmit={handleWithdraw} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="w-amount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Amount (INR)</Label>
+              <Input
+                id="w-amount"
+                type="number"
+                placeholder="0.00"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                value={withdrawAmount}
+                onChange={(e) => setWithdrawAmount(e.target.value)}
+                required
+              />
+              <p className="text-[10px] text-muted-foreground">Available: ₹{profile?.balance || 0}</p>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Payment Method</Label>
+              <Select value={withdrawMethod} onValueChange={setWithdrawMethod}>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl">
+                  <SelectValue placeholder="Select method" />
+                </SelectTrigger>
+                <SelectContent className="bg-[#111] border-white/10 text-white">
+                  <SelectItem value="upi">UPI Transfer</SelectItem>
+                  <SelectItem value="bank">Bank Account</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="details" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                {withdrawMethod === 'upi' ? 'UPI ID' : 'Bank Details (Acc No, IFSC)'}
+              </Label>
+              <Input
+                id="details"
+                placeholder={withdrawMethod === 'upi' ? "example@upi" : "Account Number, IFSC, Name"}
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                value={withdrawDetails}
+                onChange={(e) => setWithdrawDetails(e.target.value)}
                 required
               />
             </div>
 
-            <DialogFooter className="pt-2">
-              <Button 
-                type="submit" 
-                disabled={isSubmitting}
-                className="w-full bg-primary hover:bg-primary/90 text-white h-12 rounded-xl font-bold uppercase tracking-wider"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Processing...
-                  </>
-                ) : (
-                  'Confirm Deposit'
-                )}
-              </Button>
-            </DialogFooter>
+            <div className="space-y-2">
+              <Label htmlFor="w-email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Email Address</Label>
+              <Input
+                id="w-email"
+                type="email"
+                placeholder="your@email.com"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl"
+                value={withdrawEmail}
+                onChange={(e) => setWithdrawEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <Button type="submit" disabled={isWithdrawing} className="w-full bg-white text-black hover:bg-white/90 h-12 rounded-xl font-bold uppercase">
+              {isWithdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Confirm Withdrawal'}
+            </Button>
           </form>
         </DialogContent>
       </Dialog>
