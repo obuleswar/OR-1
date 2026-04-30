@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useUser, useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import { signOut } from 'firebase/auth';
-import { LayoutDashboard, Menu } from 'lucide-react';
+import { Menu } from 'lucide-react';
 
 function HeaderLogo() {
   return (
@@ -62,12 +62,6 @@ export function Header() {
             <>
               {user ? (
                 <div className="flex items-center gap-2 sm:gap-4">
-                  <Link href="/dashboard">
-                    <Button variant="ghost" size="sm" className="flex items-center gap-1 text-white hover:bg-white/10">
-                      <LayoutDashboard className="h-4 w-4" />
-                      <span className="hidden sm:inline">Dashboard</span>
-                    </Button>
-                  </Link>
                   <Button variant="outline" size="sm" onClick={handleSignOut} className="text-white border-white/20 hover:bg-white/10">
                     Sign Out
                   </Button>
