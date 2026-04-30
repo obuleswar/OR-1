@@ -68,12 +68,11 @@ export default function K3LotrePage() {
 
   const { data: recentResults } = useCollection(resultsQuery);
 
-  const generatePeriod = useCallback(() => {
-    const now = new Date();
-    const yyyymmdd = now.getUTCFullYear().toString() + 
-                     (now.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                     now.getUTCDate().toString().padStart(2, '0');
-    const secondsInDay = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+  const generatePeriod = useCallback((date: Date = new Date()) => {
+    const yyyymmdd = date.getUTCFullYear().toString() + 
+                     (date.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                     date.getUTCDate().toString().padStart(2, '0');
+    const secondsInDay = date.getUTCHours() * 3600 + date.getUTCMinutes() * 60 + date.getUTCSeconds();
     const roundNumber = Math.floor(secondsInDay / ROUND_TIME);
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
@@ -96,14 +95,8 @@ export default function K3LotrePage() {
     if (!isInitialized || !currentPeriod) return;
 
     const now = new Date();
-    const nowMs = now.getTime();
-    const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
-    const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
-                    (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                    prevRoundTime.getUTCDate().toString().padStart(2, '0');
-    const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
-    const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
-    const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
+    const prevRoundTime = new Date(now.getTime() - (ROUND_TIME * 1000));
+    const prevPeriod = generatePeriod(prevRoundTime);
 
     if (lastSettledPeriod.current !== prevPeriod) {
       lastSettledPeriod.current = prevPeriod;
@@ -126,7 +119,7 @@ export default function K3LotrePage() {
         });
       });
     }
-  }, [currentPeriod, isInitialized]);
+  }, [currentPeriod, isInitialized, generatePeriod]);
 
   useEffect(() => {
     if (!isInitialized) return;

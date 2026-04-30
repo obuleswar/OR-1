@@ -2,9 +2,9 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
-import { ChevronLeft, Zap, Loader2, IndianRupee } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
+import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { ChevronLeft, Zap, Loader2, IndianRupee, History, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -34,12 +34,18 @@ export default function DragonTigerPage() {
 
   const { data: profile } = useDoc(userDocRef);
 
-  const generatePeriod = useCallback(() => {
-    const now = new Date();
-    const yyyymmdd = now.getUTCFullYear().toString() + 
-                     (now.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                     now.getUTCDate().toString().padStart(2, '0');
-    const secondsInDay = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+  const resultsQuery = useMemoFirebase(() => {
+    if (!db) return null;
+    return query(collection(db, 'dragon_tiger_results'), orderBy('createdAt', 'desc'), limit(20));
+  }, [db]);
+
+  const { data: recentResults } = useCollection(resultsQuery);
+
+  const generatePeriod = useCallback((date: Date = new Date()) => {
+    const yyyymmdd = date.getUTCFullYear().toString() + 
+                     (date.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                     date.getUTCDate().toString().padStart(2, '0');
+    const secondsInDay = date.getUTCHours() * 3600 + date.getUTCMinutes() * 60 + date.getUTCSeconds();
     const roundNumber = Math.floor(secondsInDay / ROUND_TIME);
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
@@ -53,14 +59,8 @@ export default function DragonTigerPage() {
     if (!isInitialized || !currentPeriod) return;
 
     const now = new Date();
-    const nowMs = now.getTime();
-    const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
-    const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
-                    (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                    prevRoundTime.getUTCDate().toString().padStart(2, '0');
-    const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
-    const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
-    const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
+    const prevRoundTime = new Date(now.getTime() - (ROUND_TIME * 1000));
+    const prevPeriod = generatePeriod(prevRoundTime);
 
     if (lastSettledPeriod.current !== prevPeriod) {
       lastSettledPeriod.current = prevPeriod;
@@ -68,7 +68,7 @@ export default function DragonTigerPage() {
         settleDragonTigerRound(prevPeriod);
       });
     }
-  }, [currentPeriod, isInitialized]);
+  }, [currentPeriod, isInitialized, generatePeriod]);
 
   useEffect(() => {
     if (!isInitialized) return;
@@ -187,7 +187,7 @@ export default function DragonTigerPage() {
         </button>
       </div>
 
-      <div className="bg-[#111]/50 p-4 rounded-full border border-white/5 shadow-inner">
+      <div className="bg-[#111]/50 p-4 rounded-full border border-white/5 shadow-inner mb-12">
         <div className="flex justify-between items-center px-2">
           {[1, 5, 10, 20, 50, 100].map((val) => (
             <button
@@ -206,6 +206,47 @@ export default function DragonTigerPage() {
               )}
             </button>
           ))}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <History className="w-4 h-4 text-white/40" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Recent Battle History</h3>
+          </div>
+          {isPending && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+        </div>
+        <div className="bg-[#111] rounded-[2rem] overflow-hidden border border-white/5">
+          <table className="w-full text-center text-xs">
+            <thead className="bg-white/5">
+              <tr className="h-10 text-white/20 uppercase font-black">
+                <th className="px-4">Period</th>
+                <th className="px-4">Winner</th>
+                <th className="px-4">Score</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5">
+              {recentResults?.map((res) => (
+                <tr key={res.id} className="h-12 hover:bg-white/5 transition-colors">
+                  <td className="font-mono text-[10px] opacity-40">{res.period}</td>
+                  <td>
+                    <span className={cn(
+                      "px-2 py-0.5 rounded-[4px] font-black text-[10px] uppercase",
+                      res.winner === 'Dragon' ? "bg-red-500/20 text-red-500" :
+                      res.winner === 'Tiger' ? "bg-blue-500/20 text-blue-500" :
+                      "bg-green-500/20 text-green-500"
+                    )}>
+                      {res.winner}
+                    </span>
+                  </td>
+                  <td className="font-bold text-white/60">
+                    {res.dragonCard} : {res.tigerCard}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
