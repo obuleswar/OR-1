@@ -14,17 +14,11 @@ function CustomLogo() {
         className="h-full w-full"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Combined O and R shape */}
         <path
-          d="M10,25 Q10,10 25,10 L50,10 L50,90 L25,90 Q10,90 10,75 Z M25,25 L25,75 Q25,80 30,80 L35,80 Q40,80 40,75 L40,25 Q40,20 35,20 L30,20 Q25,20 25,25 Z"
+          fillRule="evenodd"
+          d="M30,10 H75 C92,10 95,15 95,35 V45 C95,60 85,65 75,65 H65 V90 H50 V65 H48 V90 H10 V30 C10,10 25,10 30,10 Z M25,24 V76 H38 V24 H25 Z M62,24 V51 H82 V24 H62 Z"
           fill="#52ffb8"
         />
-        <path
-          d="M50,10 L80,10 Q95,10 95,25 L95,45 Q95,55 85,55 L65,55 L65,90 L50,90 Z M65,22 L65,43 L80,43 Q85,43 85,38 L85,27 Q85,22 80,22 Z"
-          fill="#52ffb8"
-        />
-        {/* Connection bridge to combine them visually */}
-        <rect x="40" y="35" width="20" height="10" fill="#52ffb8" />
       </svg>
     </div>
   );
