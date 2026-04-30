@@ -4,7 +4,7 @@ import { useUser, useAuth } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { LogOut, User, Mail, Shield, ChevronRight } from 'lucide-react';
+import { LogOut, User, Mail, Shield, ChevronRight, Bell, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function ProfilePage() {
@@ -35,9 +35,10 @@ export default function ProfilePage() {
       </header>
 
       <div className="space-y-4">
+        {/* Personal Information */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">PERSONAL INFORMATION</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Personal Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between py-2 border-b">
@@ -47,7 +48,7 @@ export default function ProfilePage() {
               </div>
               <span className="text-sm text-muted-foreground">{user.email}</span>
             </div>
-            <div className="flex items-center justify-between py-2 border-b">
+            <div className="flex items-center justify-between py-2">
               <div className="flex items-center gap-3">
                 <Shield className="h-4 w-4 text-muted-foreground" />
                 <span className="text-sm font-medium">Account Status</span>
@@ -57,22 +58,30 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {/* Settings Section */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium text-muted-foreground">SETTINGS</CardTitle>
+            <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Settings</CardTitle>
           </CardHeader>
           <CardContent className="space-y-1">
-            <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors">
-              <span className="text-sm">Notification Settings</span>
+            <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-left group">
+              <div className="flex items-center gap-3">
+                <Bell className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                <span className="text-sm">Notification Settings</span>
+              </div>
               <ChevronRight className="h-4 w-4 text-muted-foreground" />
             </button>
-            <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors text-destructive">
-              <span className="text-sm">Delete Account</span>
+            <button className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-destructive/5 transition-colors text-left text-destructive group">
+              <div className="flex items-center gap-3">
+                <Trash2 className="h-4 w-4 text-destructive" />
+                <span className="text-sm">Delete Account</span>
+              </div>
               <ChevronRight className="h-4 w-4" />
             </button>
           </CardContent>
         </Card>
 
+        {/* Sign Out Button */}
         <Button 
           variant="outline" 
           className="w-full h-12 border-destructive/20 text-destructive hover:bg-destructive/10"
