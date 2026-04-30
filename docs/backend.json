@@ -59,6 +59,17 @@
         "createdAt": { "type": "string", "format": "date-time" }
       }
     },
+    "DragonTigerResult": {
+      "title": "DragonTigerResult",
+      "type": "object",
+      "properties": {
+        "period": { "type": "string" },
+        "winner": { "type": "string", "enum": ["Dragon", "Tiger", "Tie"] },
+        "dragonCard": { "type": "number" },
+        "tigerCard": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
     "Transaction": {
       "title": "Transaction",
       "type": "object",
@@ -94,11 +105,19 @@
         }
       },
       {
+        "path": "/dragon_tiger_results/{period}",
+        "definition": {
+          "entityName": "DragonTigerResult",
+          "schema": { "$ref": "#/backend/entities/DragonTigerResult" },
+          "description": "History of Dragon vs Tiger game results."
+        }
+      },
+      {
         "path": "/bets/{betId}",
         "definition": {
           "entityName": "WingoBet",
           "schema": { "$ref": "#/backend/entities/WingoBet" },
-          "description": "User bets on Wingo."
+          "description": "User bets on games."
         }
       },
       {

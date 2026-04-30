@@ -74,7 +74,7 @@ const EARNING_TASKS = [
     color: 'text-pink-400',
     bg: 'bg-pink-400/10',
     highlight: true,
-    href: '#',
+    href: '/earn/dragon-tiger',
   },
   {
     id: 'refer-earn',
