@@ -1,23 +1,22 @@
-
 'use client';
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 
 const ADMIN_UPI_ID = "orwallet@okaxis";
 
@@ -58,7 +57,7 @@ export default function DashboardPage() {
     });
   };
 
-  const handleDeposit = (e: React.FormEvent) => {
+  const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(depositAmount);
     
@@ -72,11 +71,20 @@ export default function DashboardPage() {
       return;
     }
 
-    if (userDocRef) {
+    if (userDocRef && db) {
       updateDocumentNonBlocking(userDocRef, {
         balance: increment(amount),
         lastDepositAt: serverTimestamp(),
         lastDepositDetails: { amount, utr, email: depositEmail }
+      });
+
+      // Log transaction
+      await addDoc(collection(db, 'transactions'), {
+        userId: user!.uid,
+        type: 'deposit',
+        amount: amount,
+        description: `Deposit via UPI (UTR: ${utr})`,
+        timestamp: serverTimestamp()
       });
 
       toast({
@@ -90,7 +98,7 @@ export default function DashboardPage() {
     }
   };
 
-  const handleWithdraw = (e: React.FormEvent) => {
+  const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(withdrawAmount);
     const currentBalance = profile?.balance || 0;
@@ -114,11 +122,20 @@ export default function DashboardPage() {
       details = `Bank: ${bankName}, Acc: ${bankAccount}, IFSC: ${bankIfsc}`;
     }
 
-    if (userDocRef) {
+    if (userDocRef && db) {
       updateDocumentNonBlocking(userDocRef, {
         balance: increment(-amount),
         lastWithdrawAt: serverTimestamp(),
         lastWithdrawDetails: { amount, method: withdrawMethod, details, email: withdrawEmail }
+      });
+
+      // Log transaction
+      await addDoc(collection(db, 'transactions'), {
+        userId: user!.uid,
+        type: 'withdraw',
+        amount: amount,
+        description: `Withdrawal to ${withdrawMethod.toUpperCase()} (${details})`,
+        timestamp: serverTimestamp()
       });
 
       toast({
@@ -145,8 +162,14 @@ export default function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-lg space-y-8 pb-24">
-      <header className="px-1">
+      <header className="px-1 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white tracking-tight uppercase">Wallet</h1>
+        <Link href="/history">
+          <Button variant="ghost" size="sm" className="text-primary font-bold uppercase text-[10px] tracking-widest bg-primary/5 border border-primary/10 rounded-full px-4">
+            <History className="w-3 h-3 mr-1.5" />
+            History
+          </Button>
+        </Link>
       </header>
       
       <Card className="bg-primary text-primary-foreground border-none rounded-[2rem] shadow-2xl overflow-hidden relative">

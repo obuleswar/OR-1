@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -17,7 +16,7 @@ export default function Home() {
     return doc(db, 'users', user.uid);
   }, [db, user?.uid]);
 
-  const { data: profile, isLoading: isProfileLoading } = useDoc(userDocRef);
+  const { data: profile } = useDoc(userDocRef);
 
   if (isUserLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]">Loading...</div>;
@@ -37,7 +36,7 @@ export default function Home() {
                   <span className="text-5xl font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
                 </div>
               </div>
-              <div className="bg-white/10 px-2 py-1 rounded text-[10px] font-bold">ID</div>
+              <div className="bg-white/10 px-2 py-1 rounded text-[10px] font-bold">VIP</div>
             </div>
 
             <div className="flex gap-3 mt-10">
@@ -55,12 +54,11 @@ export default function Home() {
               </Link>
             </div>
           </CardContent>
-          {/* Subtle background circles for style */}
           <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none" />
         </Card>
 
         {/* Activity Log / History Center */}
-        <Link href="/dashboard" className="block">
+        <Link href="/history" className="block">
           <Card className="bg-[#0f0f0f] border-white/5 hover:bg-[#151515] transition-colors rounded-2xl">
             <CardContent className="p-6 flex items-center justify-between">
               <div>
