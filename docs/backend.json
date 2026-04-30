@@ -1,19 +1,5 @@
 {
   "entities": {
-    "App": {
-      "title": "App",
-      "type": "object",
-      "description": "Represents an application metadata.",
-      "properties": {
-        "id": { "type": "string" },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "iconUrl": { "type": "string" },
-        "latestVersion": { "type": "string" },
-        "downloadUrl": { "type": "string" },
-        "downloadCount": { "type": "number" }
-      }
-    },
     "UserProfile": {
       "title": "UserProfile",
       "type": "object",
@@ -24,7 +10,8 @@
         "balance": { "type": "number" },
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "totalEarning": { "type": "number" }
       }
     },
     "Transaction": {
@@ -62,46 +49,26 @@
     ]
   },
   "firestore": {
-    "structure": [
-      {
-        "path": "/users/{userId}",
-        "definition": {
-          "entityName": "UserProfile",
-          "description": "User profiles and wallet balances."
-        }
-      },
-      {
-        "path": "/transactions/{transactionId}",
-        "definition": {
-          "entityName": "Transaction",
-          "description": "Global log of all financial activities."
-        }
-      },
-      {
-        "path": "/bets/{betId}",
-        "definition": {
-          "entityName": "Bet",
-          "description": "Individual wagers placed by users."
-        }
-      },
-      {
-        "path": "/wingo_results/{period}",
-        "definition": {
-          "description": "Historical results for Wingo game rounds."
-        }
-      },
-      {
-        "path": "/k3_results/{period}",
-        "definition": {
-          "description": "Historical results for K3 game rounds."
-        }
-      },
-      {
-        "path": "/dragon_tiger_results/{period}",
-        "definition": {
-          "description": "Historical results for Dragon Tiger game rounds."
-        }
-      }
-    ]
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles and wallet balances."
+    },
+    "/transactions/{transactionId}": {
+      "schema": "Transaction",
+      "description": "Global log of all financial activities."
+    },
+    "/bets/{betId}": {
+      "schema": "Bet",
+      "description": "Individual wagers placed by users."
+    },
+    "/wingo_results/{period}": {
+      "description": "Historical results for Wingo game rounds."
+    },
+    "/k3_results/{period}": {
+      "description": "Historical results for K3 game rounds."
+    },
+    "/dragon_tiger_results/{period}": {
+      "description": "Historical results for Dragon Tiger game rounds."
+    }
   }
 }
