@@ -16,8 +16,9 @@ function CustomLogo() {
       >
         <path
           fillRule="evenodd"
-          d="M30,10 H75 C92,10 95,15 95,35 V45 C95,60 85,65 75,65 H65 V90 H50 V65 H48 V90 H10 V30 C10,10 25,10 30,10 Z M25,24 V76 H38 V24 H25 Z M62,24 V51 H82 V24 H62 Z"
-          fill="#52ffb8"
+          d="M10,20 C10,12 18,10 25,10 H75 C88,10 95,17 95,30 V45 C95,58 88,65 75,65 H60 L85,90 H65 L48,70 V90 H30 V65 H10 V20 Z M28,25 V50 H38 V25 H28 Z M55,25 V50 H78 V25 H55 Z"
+          fill="currentColor"
+          className="text-primary"
         />
       </svg>
     </div>
