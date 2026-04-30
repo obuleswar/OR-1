@@ -1,12 +1,92 @@
+'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { IndianRupee, ShieldCheck, Zap, Users } from 'lucide-react';
+import { IndianRupee, ShieldCheck, Zap, Users, Home as HomeIcon, Wallet, User, Gift } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function Home() {
+  const { user, isUserLoading } = useUser();
+
+  if (isUserLoading) {
+    return <div className="flex items-center justify-center min-h-[60vh]">Loading...</div>;
+  }
+
+  // Logged In Home Experience
+  if (user) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-4xl">
+        <header className="mb-8">
+          <h1 className="text-3xl font-bold">Welcome back!</h1>
+          <p className="text-muted-foreground">Earning opportunities are waiting for you.</p>
+        </header>
+
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <Link href="/earn" className="group">
+            <Card className="h-full hover:border-primary/50 transition-colors bg-primary/5">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Zap className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-bold">Earn Now</h3>
+                <p className="text-xs text-muted-foreground">Complete tasks & refer friends</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/dashboard" className="group">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Wallet className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-bold">Wallet</h3>
+                <p className="text-xs text-muted-foreground">Check your balance & payouts</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/profile" className="group">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <User className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-bold">Profile</h3>
+                <p className="text-xs text-muted-foreground">Manage your account settings</p>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/earn" className="group">
+            <Card className="h-full hover:border-primary/50 transition-colors">
+              <CardContent className="p-6 flex flex-col items-center text-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Gift className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-bold">Referrals</h3>
+                <p className="text-xs text-muted-foreground">Invite friends and get rewards</p>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        <section className="bg-muted/30 rounded-2xl p-6 border border-white/5">
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldCheck className="text-primary h-5 w-5" />
+            <h2 className="font-bold">Daily Bonus Available</h2>
+          </div>
+          <p className="text-sm text-muted-foreground mb-4">Check in daily to increase your earnings multiplier. Consistency pays off!</p>
+          <Button className="w-full sm:w-auto">Claim Daily Bonus</Button>
+        </section>
+      </div>
+    );
+  }
+
+  // Guest Landing Page
   return (
     <div className="flex flex-col min-h-[80vh]">
-      {/* Hero Section */}
       <section className="flex-grow flex flex-col items-center justify-center text-center px-4 py-20 bg-gradient-to-b from-[#0a0a0a] to-background">
         <div className="max-w-3xl space-y-8">
           <h1 className="text-5xl md:text-7xl font-bold tracking-tighter text-white">
@@ -30,7 +110,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Grid */}
       <section className="container mx-auto px-4 py-20">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
           <div className="flex flex-col items-center text-center space-y-4 p-6 rounded-2xl bg-card border border-white/5 shadow-xl">
