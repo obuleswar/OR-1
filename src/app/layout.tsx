@@ -6,6 +6,7 @@ import { Header } from '@/components/Header';
 import { Footer } from '@/components/Footer';
 import { FirebaseClientProvider } from '@/firebase';
 import { BottomNav } from '@/components/BottomNav';
+import { GameEngine } from '@/components/GameEngine';
 
 export const metadata: Metadata = {
   title: 'OR Wallet',
@@ -29,6 +30,7 @@ export default function RootLayout({
       </head>
       <body className={cn('font-body antialiased', 'flex flex-col min-h-screen pb-16 sm:pb-0')}>
         <FirebaseClientProvider>
+          <GameEngine />
           <Header />
           <main className="flex-grow">{children}</main>
           <BottomNav />

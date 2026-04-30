@@ -1,15 +1,14 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
-import { ChevronLeft, Zap, Loader2, IndianRupee, History, Trophy } from 'lucide-react';
+import { ChevronLeft, Zap, Loader2, IndianRupee, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { placeDragonTigerBet, settleDragonTigerRound } from './actions';
+import { placeDragonTigerBet } from './actions';
 
 const ROUND_TIME = 60;
 
@@ -21,9 +20,8 @@ function PlayingCard({ value, suit, label, colorClass }: { value: number | strin
         <div className="absolute top-1 left-2 text-black font-black text-lg leading-none">{value}</div>
         <div className="text-4xl">{suit}</div>
         <div className="absolute bottom-1 right-2 text-black font-black text-lg rotate-180 leading-none">{value}</div>
-        {/* Decorative pattern */}
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none flex items-center justify-center">
-           <div className="text-6xl font-black text-black">DRAGON</div>
+           <div className="text-6xl font-black text-black uppercase">Battle</div>
         </div>
       </div>
     </div>
@@ -34,19 +32,17 @@ export default function DragonTigerPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
   
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
-  const [selectedChip, setSelectedChip] = useState(1);
+  const [selectedChip, setSelectedChip] = useState(10);
   const [currentPeriod, setCurrentPeriod] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   
-  // Reveal state
   const [lastResult, setLastResult] = useState<{ dragon: number, tiger: number, winner: string } | null>(null);
   const [isRevealing, setIsRevealing] = useState(false);
 
-  const lastSettledPeriod = useRef<string | null>(null);
+  const revealedPeriod = useRef<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -57,7 +53,7 @@ export default function DragonTigerPage() {
 
   const resultsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'dragon_tiger_results'), orderBy('createdAt', 'desc'), limit(20));
+    return query(collection(db, 'dragon_tiger_results'), orderBy('period', 'desc'), limit(20));
   }, [db]);
 
   const { data: recentResults } = useCollection(resultsQuery);
@@ -76,49 +72,37 @@ export default function DragonTigerPage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  useEffect(() => {
-    if (!isInitialized || !currentPeriod) return;
-
-    const now = new Date();
-    const prevRoundTime = new Date(now.getTime() - (ROUND_TIME * 1000));
-    const prevPeriod = generatePeriod(prevRoundTime);
-
-    if (lastSettledPeriod.current !== prevPeriod) {
-      lastSettledPeriod.current = prevPeriod;
-      startTransition(async () => {
-        const res = await settleDragonTigerRound(prevPeriod);
-        if (res.success && res.result) {
-          setLastResult({
-            dragon: res.result.dragonCard,
-            tiger: res.result.tigerCard,
-            winner: res.result.winner
-          });
-          setIsRevealing(true);
-          // Show cards for 8 seconds then hide to prepare next
-          setTimeout(() => setIsRevealing(false), 8000);
-        }
-      });
-    }
-  }, [currentPeriod, isInitialized, generatePeriod]);
-
+  // Sync Timer
   useEffect(() => {
     if (!isInitialized) return;
-
     const timer = setInterval(() => {
       const now = new Date();
       const period = generatePeriod();
       const secondsInRound = (now.getUTCSeconds() + (now.getUTCMinutes() * 60)) % ROUND_TIME;
       const remaining = ROUND_TIME - secondsInRound;
-
       setTimeLeft(remaining);
-      
-      if (period !== currentPeriod) {
-        setCurrentPeriod(period);
-      }
+      if (period !== currentPeriod) setCurrentPeriod(period);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [currentPeriod, generatePeriod, isInitialized]);
+
+  // Handle Reveal Animation when global engine settles a round
+  useEffect(() => {
+    if (!recentResults || recentResults.length === 0) return;
+    const latest = recentResults[0];
+    const prevPeriod = generatePeriod(new Date(Date.now() - (ROUND_TIME * 1000)));
+
+    if (latest.period === prevPeriod && revealedPeriod.current !== latest.period) {
+      revealedPeriod.current = latest.period;
+      setLastResult({
+        dragon: latest.dragonCard,
+        tiger: latest.tigerCard,
+        winner: latest.winner
+      });
+      setIsRevealing(true);
+      setTimeout(() => setIsRevealing(false), 8000);
+    }
+  }, [recentResults, generatePeriod]);
 
   const handleBet = async (type: string) => {
     if (!user) {
@@ -197,32 +181,19 @@ export default function DragonTigerPage() {
               <PlayingCard value={getCardValue(lastResult.tiger)} suit="♥️" label="Tiger" colorClass="text-blue-500" />
            </div>
          ) : (
-           <>
-              <div className="absolute inset-0 opacity-10 pointer-events-none">
-                 <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <path d="M0 50 Q 50 0 100 50 T 0 50" fill="none" stroke="currentColor" strokeWidth="0.5" />
-                 </svg>
+           <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 rounded-full bg-white/5 flex items-center justify-center animate-pulse">
+                <Zap className="w-8 h-8 text-white/20" />
               </div>
-              <div className="flex flex-col items-center gap-4">
-                 <div className={cn("w-16 h-16 rounded-full bg-white/5 flex items-center justify-center", !isPending && "animate-pulse")}>
-                    {isPending ? (
-                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    ) : (
-                      <svg className="w-8 h-8 text-white/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                      </svg>
-                    )}
-                 </div>
-                 <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/40">
-                   {timeLeft <= 5 ? "Result Generating..." : "Preparing Battle..."}
-                 </p>
-              </div>
-           </>
+              <p className="text-[10px] font-bold tracking-[0.3em] uppercase text-white/40">
+                {timeLeft <= 5 ? "Result Generating..." : "Waiting for Battle..."}
+              </p>
+           </div>
          )}
          
          {timeLeft <= 5 && !isRevealing && (
            <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 backdrop-blur-sm">
-             <p className="text-2xl font-black text-red-500 uppercase tracking-widest italic animate-bounce">Betting Locked</p>
+             <p className="text-2xl font-black text-red-500 uppercase tracking-widest italic animate-bounce">Locked</p>
            </div>
          )}
       </div>
@@ -266,25 +237,19 @@ export default function DragonTigerPage() {
                 "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black transition-all relative",
                 selectedChip === val 
                   ? "bg-yellow-500 text-black scale-125 shadow-[0_0_20px_rgba(234,179,8,0.5)] z-10" 
-                  : "bg-white/10 text-white/40"
+                  : "bg-white/5 text-white/40"
               )}
             >
               {val}
-              {selectedChip === val && (
-                <div className="absolute -inset-1 rounded-full border-2 border-yellow-500/30 animate-ping pointer-events-none" />
-              )}
             </button>
           ))}
         </div>
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <History className="w-4 h-4 text-white/40" />
-            <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Recent Battle History</h3>
-          </div>
-          {isPending && <Loader2 className="w-3 h-3 animate-spin text-primary" />}
+        <div className="flex items-center gap-2 px-1">
+          <History className="w-4 h-4 text-white/40" />
+          <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Battle History</h3>
         </div>
         <div className="bg-[#111] rounded-[2rem] overflow-hidden border border-white/5">
           <table className="w-full text-center text-xs">
@@ -292,12 +257,12 @@ export default function DragonTigerPage() {
               <tr className="h-10 text-white/20 uppercase font-black">
                 <th className="px-4">Period</th>
                 <th className="px-4">Winner</th>
-                <th className="px-4">Score</th>
+                <th className="px-4">Cards</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
               {recentResults?.map((res) => (
-                <tr key={res.id} className="h-12 hover:bg-white/5 transition-colors">
+                <tr key={res.id} className="h-12">
                   <td className="font-mono text-[10px] opacity-40">{res.period}</td>
                   <td>
                     <span className={cn(

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { IndianRupee, Zap, ChevronLeft, Loader2, History, Trophy } from 'lucide-react';
@@ -9,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { placeBet, settleRound } from './actions';
+import { placeBet } from './actions';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,6 @@ export default function WingoPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
   
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
   const [selectedAmount, setSelectedAmount] = useState(10);
@@ -32,8 +30,6 @@ export default function WingoPage() {
   const [betType, setBetType] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
-
-  const lastSettledPeriod = useRef<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -49,12 +45,11 @@ export default function WingoPage() {
 
   const { data: recentResults } = useCollection(resultsQuery);
 
-  const generatePeriod = useCallback(() => {
-    const now = new Date();
-    const yyyymmdd = now.getUTCFullYear().toString() + 
-                     (now.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                     now.getUTCDate().toString().padStart(2, '0');
-    const secondsInDay = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
+  const generatePeriod = useCallback((date: Date = new Date()) => {
+    const yyyymmdd = date.getUTCFullYear().toString() + 
+                     (date.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                     date.getUTCDate().toString().padStart(2, '0');
+    const secondsInDay = date.getUTCHours() * 3600 + date.getUTCMinutes() * 60 + date.getUTCSeconds();
     const roundNumber = Math.floor(secondsInDay / ROUND_TIME);
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
@@ -65,48 +60,21 @@ export default function WingoPage() {
   }, [generatePeriod]);
 
   useEffect(() => {
-    if (!isInitialized || !currentPeriod) return;
-
-    const now = new Date();
-    const nowMs = now.getTime();
-    const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
-    const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
-                    (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
-                    prevRoundTime.getUTCDate().toString().padStart(2, '0');
-    const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
-    const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
-    const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
-
-    if (lastSettledPeriod.current !== prevPeriod) {
-      lastSettledPeriod.current = prevPeriod;
-      startTransition(() => {
-        settleRound(prevPeriod);
-      });
-    }
-  }, [currentPeriod, isInitialized]);
-
-  useEffect(() => {
     if (!isInitialized) return;
-
     const timer = setInterval(() => {
       const now = new Date();
       const period = generatePeriod();
       const secondsInRound = (now.getUTCSeconds() + (now.getUTCMinutes() * 60)) % ROUND_TIME;
       const remaining = ROUND_TIME - secondsInRound;
-
       setTimeLeft(remaining);
-      
-      if (period !== currentPeriod) {
-        setCurrentPeriod(period);
-      }
+      if (period !== currentPeriod) setCurrentPeriod(period);
     }, 1000);
-
     return () => clearInterval(timer);
   }, [currentPeriod, generatePeriod, isInitialized]);
 
   const handleBetClick = (type: string) => {
     if (timeLeft <= 5) {
-      toast({ variant: 'destructive', title: 'Betting Closed', description: 'Wait for next round.' });
+      toast({ variant: 'destructive', title: 'Betting Closed' });
       return;
     }
     setBetType(type);
@@ -115,7 +83,7 @@ export default function WingoPage() {
 
   const onConfirmBet = async () => {
     if (!user) {
-      toast({ variant: 'destructive', title: 'Sign In Required', description: 'Please log in to place bets.' });
+      toast({ variant: 'destructive', title: 'Sign In Required' });
       return;
     }
     setIsPlacingBet(true);
@@ -136,9 +104,7 @@ export default function WingoPage() {
     return 'bg-[#ff1744]';
   };
 
-  if (!isInitialized) {
-    return <div className="container mx-auto p-8 text-center text-muted-foreground">Loading Wingo...</div>;
-  }
+  if (!isInitialized) return null;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
@@ -148,13 +114,12 @@ export default function WingoPage() {
             <ChevronLeft className="h-6 w-6" />
           </Button>
         </Link>
-        <div className="bg-[#00d2ff]/20 border border-[#00d2ff]/40 px-6 py-2 rounded-xl flex flex-col items-center shadow-[0_0_15px_rgba(0,210,255,0.3)]">
+        <div className="bg-[#00d2ff]/20 border border-[#00d2ff]/40 px-6 py-2 rounded-xl flex flex-col items-center">
           <Zap className="w-4 h-4 text-[#00d2ff] mb-1" />
           <span className="text-[10px] font-bold uppercase tracking-widest text-[#00d2ff]">1 MIN</span>
         </div>
         <div className="flex gap-2">
           <Button variant="ghost" size="icon" className="text-white/60"><History className="h-5 w-5"/></Button>
-          <Button variant="ghost" size="icon" className="text-white/60"><Trophy className="h-5 w-5"/></Button>
         </div>
       </div>
 
@@ -169,9 +134,7 @@ export default function WingoPage() {
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Time Left</p>
-              <div className="flex items-center gap-1.5">
-                <div className="bg-black/30 w-10 h-12 rounded-lg flex items-center justify-center text-2xl font-bold text-[#00e676]">{timeLeft.toString().padStart(2, '0')}</div>
-              </div>
+              <div className="bg-black/30 w-10 h-12 rounded-lg flex items-center justify-center text-2xl font-bold text-[#00e676]">{timeLeft.toString().padStart(2, '0')}</div>
             </div>
           </div>
           <div>
@@ -187,9 +150,9 @@ export default function WingoPage() {
       </div>
 
       <div className="grid grid-cols-3 gap-3 mb-6">
-        <Button onClick={() => handleBetClick('Green')} className="h-16 bg-[#00e676] hover:bg-[#00e676]/90 rounded-2xl font-bold text-lg">GREEN</Button>
-        <Button onClick={() => handleBetClick('Violet')} className="h-16 bg-[#9c27b0] hover:bg-[#9c27b0]/90 rounded-2xl font-bold text-lg">VIOLET</Button>
-        <Button onClick={() => handleBetClick('Red')} className="h-16 bg-[#ff1744] hover:bg-[#ff1744]/90 rounded-2xl font-bold text-lg">RED</Button>
+        <Button onClick={() => handleBetClick('Green')} className="h-16 bg-[#00e676] rounded-2xl font-bold text-lg">GREEN</Button>
+        <Button onClick={() => handleBetClick('Violet')} className="h-16 bg-[#9c27b0] rounded-2xl font-bold text-lg">VIOLET</Button>
+        <Button onClick={() => handleBetClick('Red')} className="h-16 bg-[#ff1744] rounded-2xl font-bold text-lg">RED</Button>
       </div>
 
       <div className="bg-[#111] rounded-[2rem] p-6 mb-6">
@@ -207,15 +170,12 @@ export default function WingoPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
-        <Button onClick={() => handleBetClick('Big')} className="h-16 bg-[#ff9100] hover:bg-[#ff9100]/90 rounded-2xl font-bold text-xl uppercase italic">Big</Button>
-        <Button onClick={() => handleBetClick('Small')} className="h-16 bg-[#2979ff] hover:bg-[#2979ff]/90 rounded-2xl font-bold text-xl uppercase italic">Small</Button>
+        <Button onClick={() => handleBetClick('Big')} className="h-16 bg-[#ff9100] rounded-2xl font-bold text-xl uppercase italic">Big</Button>
+        <Button onClick={() => handleBetClick('Small')} className="h-16 bg-[#2979ff] rounded-2xl font-bold text-xl uppercase italic">Small</Button>
       </div>
 
       <div className="bg-[#111] rounded-[2rem] p-6 mb-24">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Recent Results</h3>
-          {isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
-        </div>
+        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Recent Results</h3>
         <div className="space-y-3">
           {recentResults?.map((res) => (
             <div key={res.id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl">
@@ -226,9 +186,6 @@ export default function WingoPage() {
               </div>
             </div>
           ))}
-          {(!recentResults || recentResults.length === 0) && (
-            <p className="text-center py-4 text-xs text-muted-foreground">Waiting for rounds to complete...</p>
-          )}
         </div>
       </div>
 
