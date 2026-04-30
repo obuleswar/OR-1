@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2 } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,6 +19,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
+const ADMIN_UPI_ID = "orwallet@okaxis"; // Placeholder UPI ID
+
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
@@ -25,7 +28,10 @@ export default function DashboardPage() {
   
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [depositAmount, setDepositAmount] = useState('');
+  const [utr, setUtr] = useState('');
+  const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -33,6 +39,16 @@ export default function DashboardPage() {
   }, [db, user?.uid]);
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const copyUpi = () => {
+    navigator.clipboard.writeText(ADMIN_UPI_ID);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({
+      title: "UPI ID Copied",
+      description: "You can now paste it in your payment app.",
+    });
+  };
 
   const handleDeposit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -47,19 +63,44 @@ export default function DashboardPage() {
       return;
     }
 
+    if (!utr || utr.length < 6) {
+      toast({
+        variant: 'destructive',
+        title: 'Invalid UTR',
+        description: 'Please enter a valid 12-digit UTR number.',
+      });
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      if (userDocRef) {
+      if (userDocRef && db) {
+        // In a real app, this would be a "Pending" status record for admin approval
+        // For this prototype, we'll increment the balance and log the transaction
         await updateDoc(userDocRef, {
           balance: increment(amount),
           lastDepositAt: serverTimestamp(),
         });
+
+        // Optional: log detailed transaction info if collection exists or just simulate
+        // await addDoc(collection(db, 'transactions'), {
+        //   userId: user?.uid,
+        //   type: 'deposit',
+        //   amount,
+        //   utr,
+        //   email,
+        //   status: 'completed',
+        //   timestamp: serverTimestamp(),
+        // });
+
         toast({
-          title: 'Deposit successful',
-          description: `₹${amount.toLocaleString()} has been added to your wallet.`,
+          title: 'Deposit submitted',
+          description: `₹${amount.toLocaleString()} will be verified and added to your wallet.`,
         });
         setIsDepositOpen(false);
         setDepositAmount('');
+        setUtr('');
+        setEmail('');
       }
     } catch (error: any) {
       toast({
@@ -92,7 +133,6 @@ export default function DashboardPage() {
         <p className="text-xs font-bold text-muted-foreground tracking-widest uppercase opacity-50 mt-1">Funds Management</p>
       </header>
       
-      {/* Wallet Balance Card */}
       <Card className="bg-primary text-primary-foreground border-none rounded-[2rem] shadow-2xl overflow-hidden relative">
         <CardContent className="p-8">
           <div className="space-y-1 mb-10">
@@ -116,7 +156,6 @@ export default function DashboardPage() {
             </Button>
           </div>
         </CardContent>
-        {/* Subtle decorative element */}
         <div className="absolute -right-10 -top-10 w-48 h-48 bg-white/5 rounded-full blur-3xl pointer-events-none" />
       </Card>
 
@@ -126,18 +165,29 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      {/* Deposit Dialog */}
       <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
-        <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px]">
+        <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold uppercase tracking-tight">Deposit Funds</DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              Enter the amount you wish to deposit into your OR Wallet.
+              Transfer funds via UPI and provide details below.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleDeposit} className="space-y-6 py-4">
+          
+          <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-3 mb-2">
+            <Label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Admin UPI ID</Label>
+            <div className="flex items-center justify-between bg-black/40 p-3 rounded-xl border border-white/5">
+              <span className="font-mono text-sm tracking-tight text-primary">{ADMIN_UPI_ID}</span>
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-white/50 hover:text-white" onClick={copyUpi}>
+                {copied ? <CheckCircle2 className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+              </Button>
+            </div>
+            <p className="text-[9px] text-muted-foreground italic">* Make payment to this ID then fill UTR below.</p>
+          </div>
+
+          <form onSubmit={handleDeposit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="amount" className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+              <Label htmlFor="amount" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                 Amount (INR)
               </Label>
               <div className="relative">
@@ -149,11 +199,41 @@ export default function DashboardPage() {
                   className="pl-8 bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
                   value={depositAmount}
                   onChange={(e) => setDepositAmount(e.target.value)}
-                  autoFocus
+                  required
                 />
               </div>
             </div>
-            <DialogFooter>
+
+            <div className="space-y-2">
+              <Label htmlFor="utr" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                UTR / Transaction ID
+              </Label>
+              <Input
+                id="utr"
+                placeholder="12 Digit UTR Number"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
+                value={utr}
+                onChange={(e) => setUtr(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                Email Address
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="your@email.com"
+                className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-primary"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+
+            <DialogFooter className="pt-2">
               <Button 
                 type="submit" 
                 disabled={isSubmitting}
