@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * APKeasy Security Rules
+     *
+     * Core Philosophy:
+     * This ruleset implements a Database-backed Access Control (DBAC) model combined with a 
+     * public catalog pattern. Administrative privileges are managed via a dedicated 
+     * 'roles_admin' collection.
+     *
+     * Data Structure:
+     * - /apps: Root collection for application metadata.
+     * - /apps/{appId}/versions: Subcollection for version history.
+     * - /apps/{appId}/screenshots: Subcollection for visual assets.
+     * - /categories: Global taxonomy for app organization.
+     * - /downloadRecords: Event log for app downloads.
+     * - /roles_admin: Security-critical collection for identifying administrators.
+     *
+     * Key Security Decisions:
+     * 1. Public Read: Apps, Versions, Screenshots, and Categories are publicly readable to support 
+     *    unauthenticated browsing of the store.
+     * 2. DBAC writes: Creation and modification of the app catalog is strictly reserved for 
+     *    users whose UIDs exist in the 'roles_admin' collection.
+     * 3. Download Tracking: Any authenticated or anonymous user can create download records, 
+     *    but users can only view their own download history.
+     * 4. Relational Integrity: On creation, rules ensure that document IDs and owner/user IDs 
+     *    match the data provided to prevent cross-account data injection.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the user is authenticated (including anonymous). */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the user's UID exists in the admin roles collection. */
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /** @description Checks if the user is the owner of the resource based on UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** 
+     * @description Checks if the authenticated user matches the userId field in the document data.
+     * @param {object} doc The resource object (e.g., `resource` for existing, `request.resource` for new).
+     */
+    function isDocOwner(doc) {
+      return isSignedIn() && doc.data.userId == request.auth.uid;
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Public application metadata. Reads are open for the store catalog. 
+     * Writes are restricted to administrative users.
+     * @path /apps/{appId}
+     * @allow (get) Publicly accessible.
+     * @deny (update) Unauthorized user attempting to modify app metadata.
+     * @principle Public Read with Owner (Admin)-Only Writes.
+     */
+    match /apps/{appId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && request.resource.data.id == appId;
+      allow update, delete: if isAdmin() && resource != null;
+
+      /**
+       * @description Application version details. Publicly readable to allow users to 
+       * view version history and notes.
+       * @path /apps/{appId}/versions/{versionId}
+       * @allow (list) User browsing all available versions of an app.
+       * @deny (create) Non-admin user attempting to upload a new version.
+       * @principle Admin-controlled subcollection with public access.
+       */
+      match /versions/{versionId} {
+        allow get, list: if true;
+        allow create: if isAdmin() && request.resource.data.appId == appId;
+        allow update, delete: if isAdmin() && resource != null;
+      }
+
+      /**
+       * @description Visual screenshots for an app listing.
+       * @path /apps/{appId}/screenshots/{screenshotId}
+       * @allow (get) Client fetching images for an app detail page.
+       * @deny (delete) Unauthorized user attempting to remove marketing assets.
+       * @principle Admin-controlled subcollection with public access.
+       */
+      match /screenshots/{screenshotId} {
+        allow get, list: if true;
+        allow create: if isAdmin() && request.resource.data.appId == appId;
+        allow update, delete: if isAdmin() && resource != null;
+      }
+    }
+
+    /**
+     * @description Global categories used for app classification.
+     * @path /categories/{categoryId}
+     * @allow (list) Anyone browsing app categories.
+     * @deny (update) Any non-admin attempting to rename a category.
+     * @principle Public catalog access with strict administrative management.
+     */
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && request.resource.data.id == categoryId;
+      allow update, delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Tracks app downloads. Users can log downloads and view their own history.
+     * Admins can view all records for analytics.
+     * @path /downloadRecords/{downloadRecordId}
+     * @allow (create) Authenticated user logging a download with their UID.
+     * @deny (list) User attempting to view another user's download history.
+     * @principle Self-ownership for reads and constrained creation.
+     */
+    match /downloadRecords/{downloadRecordId} {
+      // Users can see their own records; Admins can see everything.
+      allow get, list: if isAdmin() || isDocOwner(resource);
+      
+      // Downloads can be created by any signed-in user (ensuring an auth session).
+      // We enforce that if a userId is provided, it must match the current user.
+      allow create: if isSignedIn() && (request.resource.data.userId == null || request.resource.data.userId == request.auth.uid);
+      
+      // Download records are typically immutable logs.
+      allow update, delete: if isAdmin() && resource != null;
+    }
+
+    /**
+     * @description Access control mapping for administrators.
+     * @path /roles_admin/{userId}
+     * @allow (get) User checking if they have admin status.
+     * @deny (create) Standard user attempting to grant themselves admin privileges.
+     * @principle Database-backed Access Control (DBAC).
+     */
+    match /roles_admin/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      // Admin roles can only be managed by existing admins or via secure backend processes.
+      allow create, update, delete: if isAdmin() && resource != null;
+    }
+  }
+}
