@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { IndianRupee, Zap, ChevronLeft, Loader2, History, Trophy } from 'lucide-react';
@@ -23,6 +23,7 @@ export default function WingoPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
   
   const [timeLeft, setTimeLeft] = useState(ROUND_TIME);
   const [selectedAmount, setSelectedAmount] = useState(10);
@@ -30,8 +31,8 @@ export default function WingoPage() {
   const [isBettingOpen, setIsBettingOpen] = useState(false);
   const [betType, setBetType] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Use a ref to track the last settled period to avoid double settlement
   const lastSettledPeriod = useRef<string | null>(null);
 
   const userDocRef = useMemoFirebase(() => {
@@ -43,49 +44,66 @@ export default function WingoPage() {
 
   const resultsQuery = useMemoFirebase(() => {
     if (!db) return null;
-    return query(collection(db, 'wingo_results'), orderBy('period', 'desc'), limit(10));
+    return query(collection(db, 'wingo_results'), orderBy('period', 'desc'), limit(20));
   }, [db]);
 
   const { data: recentResults } = useCollection(resultsQuery);
 
   const generatePeriod = useCallback(() => {
     const now = new Date();
-    const yyyymmdd = now.toISOString().split('T')[0].replace(/-/g, '');
-    const secondsInDay = now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds();
+    const yyyymmdd = now.getUTCFullYear().toString() + 
+                     (now.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                     now.getUTCDate().toString().padStart(2, '0');
+    const secondsInDay = now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds();
     const roundNumber = Math.floor(secondsInDay / ROUND_TIME);
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
 
-  // Sync Period and Timer
+  // Initialize period on mount to avoid hydration mismatch
   useEffect(() => {
+    setCurrentPeriod(generatePeriod());
+    setIsInitialized(true);
+  }, [generatePeriod]);
+
+  // Sync Timer
+  useEffect(() => {
+    if (!isInitialized) return;
+
     const timer = setInterval(() => {
       const now = new Date();
       const period = generatePeriod();
-      const secondsInRound = (now.getSeconds() % ROUND_TIME);
+      const secondsInRound = (now.getUTCSeconds() % ROUND_TIME);
       const remaining = ROUND_TIME - secondsInRound;
 
       setTimeLeft(remaining);
       
-      // Update the current active period in state if it changed
       if (period !== currentPeriod) {
         setCurrentPeriod(period);
       }
 
-      // If we are at the very start of a new round, settle the PREVIOUS one
-      if (remaining >= ROUND_TIME - 1) {
-        // Calculate the previous period ID (crude but effective for 30s intervals)
-        const prevPeriodNum = parseInt(period) - 1;
-        const prevPeriod = prevPeriodNum.toString();
+      // Settle previous round logic
+      if (remaining >= ROUND_TIME - 2) {
+        const nowMs = now.getTime();
+        const prevRoundTime = new Date(nowMs - (ROUND_TIME * 1000));
+        const prevYMD = prevRoundTime.getUTCFullYear().toString() + 
+                        (prevRoundTime.getUTCMonth() + 1).toString().padStart(2, '0') + 
+                        prevRoundTime.getUTCDate().toString().padStart(2, '0');
+        const prevSecs = prevRoundTime.getUTCHours() * 3600 + prevRoundTime.getUTCMinutes() * 60 + prevRoundTime.getUTCSeconds();
+        const prevRoundNum = Math.floor(prevSecs / ROUND_TIME);
+        const prevPeriod = `${prevYMD}${prevRoundNum.toString().padStart(6, '0')}`;
 
         if (lastSettledPeriod.current !== prevPeriod) {
           lastSettledPeriod.current = prevPeriod;
-          settleRound(prevPeriod);
+          // Use transition to avoid Router update issues
+          startTransition(() => {
+            settleRound(prevPeriod);
+          });
         }
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [currentPeriod, generatePeriod]);
+  }, [currentPeriod, generatePeriod, isInitialized]);
 
   const handleBetClick = (type: string) => {
     if (timeLeft <= 5) {
@@ -118,6 +136,10 @@ export default function WingoPage() {
     if ([1, 3, 7, 9].includes(num)) return 'bg-[#00e676]';
     return 'bg-[#ff1744]';
   };
+
+  if (!isInitialized) {
+    return <div className="container mx-auto p-8 text-center text-muted-foreground">Loading Wingo...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24">
@@ -201,7 +223,10 @@ export default function WingoPage() {
 
       {/* Recent Results Table */}
       <div className="bg-[#111] rounded-[2rem] p-6 mb-24">
-        <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">Recent Results</h3>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Recent Results</h3>
+          {isPending && <Loader2 className="w-4 h-4 animate-spin text-primary" />}
+        </div>
         <div className="space-y-3">
           {recentResults?.map((res) => (
             <div key={res.id} className="flex items-center justify-between bg-white/5 p-3 rounded-xl">
@@ -212,6 +237,9 @@ export default function WingoPage() {
               </div>
             </div>
           ))}
+          {(!recentResults || recentResults.length === 0) && (
+            <p className="text-center py-4 text-xs text-muted-foreground">Waiting for rounds to complete...</p>
+          )}
         </div>
       </div>
 

@@ -89,9 +89,13 @@ export async function settleRound(period: string) {
       });
     }
 
-    // Payout Logic
+    // Payout Logic for all pending bets in this period
     const betsQuery = query(collection(db, 'bets'), where('period', '==', period), where('status', '==', 'pending'));
     const betsSnap = await getDocs(betsQuery);
+
+    if (betsSnap.empty) {
+      return { success: true, result: { num, bs, color }, message: 'No bets to settle' };
+    }
 
     for (const betDoc of betsSnap.docs) {
       const bet = betDoc.data();
