@@ -34,21 +34,25 @@ export default function Home() {
               <div className="space-y-1">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Available Balance</p>
                 <div className="flex items-baseline gap-1">
-                  <span className="text-5xl font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+                  <span className="text-5xl font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
                 </div>
               </div>
               <div className="bg-white/10 px-2 py-1 rounded text-[10px] font-bold">ID</div>
             </div>
 
             <div className="flex gap-3 mt-10">
-              <Button className="flex-1 bg-[#1a1a1a] hover:bg-black text-white h-12 rounded-xl border-none font-bold uppercase text-xs tracking-wider">
-                <Wallet className="w-4 h-4 mr-2" />
-                Withdraw
-              </Button>
-              <Button className="flex-1 bg-white/10 hover:bg-white/20 text-white h-12 rounded-xl border-none font-bold uppercase text-xs tracking-wider">
-                <Zap className="w-4 h-4 mr-2" />
-                Deposit
-              </Button>
+              <Link href="/dashboard" className="flex-1">
+                <Button className="w-full bg-[#1a1a1a] hover:bg-black text-white h-12 rounded-xl border-none font-bold uppercase text-xs tracking-wider">
+                  <Wallet className="w-4 h-4 mr-2" />
+                  Withdraw
+                </Button>
+              </Link>
+              <Link href="/dashboard" className="flex-1">
+                <Button className="w-full bg-white/10 hover:bg-white/20 text-white h-12 rounded-xl border-none font-bold uppercase text-xs tracking-wider">
+                  <Zap className="w-4 h-4 mr-2" />
+                  Deposit
+                </Button>
+              </Link>
             </div>
           </CardContent>
           {/* Subtle background circles for style */}
@@ -81,7 +85,7 @@ export default function Home() {
           </Link>
         </div>
 
-        {/* Daily Bonus Section (Added as requested in text) */}
+        {/* Daily Bonus Section */}
         <section className="bg-muted/10 rounded-2xl p-6 border border-white/5">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">

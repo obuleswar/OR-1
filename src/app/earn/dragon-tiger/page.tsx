@@ -118,7 +118,7 @@ export default function DragonTigerPage() {
     setIsPlacingBet(true);
     const res = await placeDragonTigerBet(user.uid, currentPeriod, type, selectedChip);
     if (res.success) {
-      toast({ title: 'Bet Successful', description: `₹${selectedChip} on ${type}` });
+      toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}` });
     } else {
       toast({ variant: 'destructive', title: 'Bet Failed', description: res.error });
     }
@@ -155,7 +155,7 @@ export default function DragonTigerPage() {
              <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
                <IndianRupee className="w-2.5 h-2.5 text-black" />
              </div>
-             <span className="text-xs font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+             <span className="text-xs font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
           </div>
           <div className="flex items-center gap-1 text-yellow-500">
              <Zap className={cn("w-3 h-3 fill-yellow-500", timeLeft <= 5 && "animate-pulse text-red-500")} />

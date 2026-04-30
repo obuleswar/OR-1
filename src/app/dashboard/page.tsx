@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
       toast({
         title: 'Deposit submitted',
-        description: `₹${amount.toLocaleString()} will be verified and added to your wallet.`,
+        description: `₹${amount.toFixed(2)} will be verified and added to your wallet.`,
       });
       setIsDepositOpen(false);
       setDepositAmount('');
@@ -123,7 +123,7 @@ export default function DashboardPage() {
 
       toast({
         title: 'Withdrawal processing',
-        description: `₹${amount.toLocaleString()} has been requested for withdrawal.`,
+        description: `₹${amount.toFixed(2)} has been requested for withdrawal.`,
       });
       setIsWithdrawOpen(false);
       setWithdrawAmount('');
@@ -154,7 +154,7 @@ export default function DashboardPage() {
           <div className="space-y-1 mb-10">
             <p className="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Available Balance</p>
             <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-bold tracking-tighter">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+              <span className="text-5xl font-bold tracking-tighter">₹{Number(profile?.balance || 0).toFixed(2)}</span>
             </div>
           </div>
 

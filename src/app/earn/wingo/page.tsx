@@ -90,7 +90,7 @@ export default function WingoPage() {
     setIsPlacingBet(true);
     const res = await placeBet(user.uid, currentPeriod, betType, selectedAmount);
     if (res.success) {
-      toast({ title: 'Bet Placed', description: `₹${selectedAmount} on ${betType}` });
+      toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}` });
       setIsBettingOpen(false);
     } else {
       toast({ variant: 'destructive', title: 'Error', description: res.error });
@@ -131,7 +131,7 @@ export default function WingoPage() {
               <div className="bg-yellow-400 rounded-full p-0.5">
                 <IndianRupee className="w-3 h-3 text-black" />
               </div>
-              <span className="font-bold text-sm">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+              <span className="font-bold text-sm">₹{Number(profile?.balance || 0).toFixed(2)}</span>
             </div>
             <div className="text-right">
               <p className="text-[10px] font-bold uppercase tracking-widest opacity-70 mb-1">Time Left</p>
@@ -230,7 +230,7 @@ export default function WingoPage() {
               </div>
             </div>
             <Button onClick={onConfirmBet} disabled={isPlacingBet} className="w-full h-14 bg-primary rounded-2xl font-bold text-lg">
-              {isPlacingBet ? <Loader2 className="animate-spin" /> : `BET ₹${selectedAmount}`}
+              {isPlacingBet ? <Loader2 className="animate-spin" /> : `BET ₹${selectedAmount.toFixed(2)}`}
             </Button>
           </div>
         </DialogContent>

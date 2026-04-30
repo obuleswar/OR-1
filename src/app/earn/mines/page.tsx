@@ -78,7 +78,7 @@ export default function MinesPage() {
     if (res.success) {
       setGameStatus('won');
       setBombPositions(res.bombPositions || []);
-      toast({ title: 'Cashed Out!', description: `Won ₹${res.payout}` });
+      toast({ title: 'Cashed Out!', description: `Won ₹${res.payout.toFixed(2)}` });
     } else {
       toast({ variant: 'destructive', title: res.error });
     }
@@ -104,19 +104,19 @@ export default function MinesPage() {
            <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
              <IndianRupee className="w-2.5 h-2.5 text-black" />
            </div>
-           <span className="text-xs font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+           <span className="text-xs font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
           <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Multiplier</p>
-          <p className="text-2xl font-black text-blue-400">x{currentMultiplier}</p>
+          <p className="text-2xl font-black text-blue-400">x{currentMultiplier.toFixed(2)}</p>
           <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
         </div>
         <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
           <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Current Win</p>
-          <p className="text-2xl font-black text-green-400">₹{potentialWin.toLocaleString()}</p>
+          <p className="text-2xl font-black text-green-400">₹{potentialWin.toFixed(2)}</p>
           <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-green-500/10" />
         </div>
       </div>
@@ -204,7 +204,7 @@ export default function MinesPage() {
               disabled={revealedIndices.length === 0 || isActionLoading}
               className="w-full h-16 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-lg"
             >
-              {isActionLoading ? <Loader2 className="animate-spin" /> : `CASH OUT ₹${potentialWin}`}
+              {isActionLoading ? <Loader2 className="animate-spin" /> : `CASH OUT ₹${potentialWin.toFixed(2)}`}
             </Button>
           ) : (
             <Button 

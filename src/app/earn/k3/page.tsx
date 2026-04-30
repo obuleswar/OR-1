@@ -124,7 +124,7 @@ export default function K3LotrePage() {
     setIsPlacingBet(true);
     const res = await placeK3Bet(user.uid, currentPeriod, type, selectedChip);
     if (res.success) {
-      toast({ title: 'Bet Successful', description: `₹${selectedChip} on ${type}` });
+      toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}` });
     } else {
       toast({ variant: 'destructive', title: 'Bet Failed', description: res.error });
     }
@@ -215,7 +215,7 @@ export default function K3LotrePage() {
             <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center">
               <IndianRupee className="w-3 h-3 text-black" />
             </div>
-            <span className="font-bold">₹{profile?.balance?.toLocaleString() || '0.00'}</span>
+            <span className="font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
           </div>
         </div>
 
