@@ -4,7 +4,7 @@
     "App": {
       "title": "App",
       "type": "object",
-      "description": "Represents a mobile application available in the INR MINER store.",
+      "description": "Represents a mobile application available in the store.",
       "properties": {
         "id": { "type": "string" },
         "title": { "type": "string" },
@@ -32,6 +32,18 @@
         "referredBy": { "type": "string", "description": "The code used by this user when signing up." }
       },
       "required": ["uid", "email", "balance", "ownReferralCode"]
+    },
+    "ReferralRecord": {
+      "title": "ReferralRecord",
+      "type": "object",
+      "description": "Log of a successful referral transaction.",
+      "properties": {
+        "id": { "type": "string" },
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     },
     "DownloadRecord": {
       "title": "DownloadRecord",
@@ -63,6 +75,14 @@
           "entityName": "UserProfile",
           "schema": { "$ref": "#/backend/entities/UserProfile" },
           "description": "User profile and balance info."
+        }
+      },
+      {
+        "path": "/referrals/{referralId}",
+        "definition": {
+          "entityName": "ReferralRecord",
+          "schema": { "$ref": "#/backend/entities/ReferralRecord" },
+          "description": "History of referrals."
         }
       },
       {

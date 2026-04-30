@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuth, initiateEmailSignIn, initiateEmailSignUp, useFirestore } from '@/firebase';
+import { useAuth, initiateEmailSignIn, useFirestore } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { doc, setDoc, getDocs, collection, query, where, updateDoc, increment } from 'firebase/firestore';
+import { doc, setDoc, getDocs, collection, query, where, updateDoc, increment, serverTimestamp, addDoc } from 'firebase/firestore';
+import { generateReferralCode } from '@/lib/utils';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -43,32 +44,50 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // For this prototype, we'll manually handle the signup and profile creation to ensure referral logic
       const { createUserWithEmailAndPassword } = await import('firebase/auth');
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      const ownCode = user.uid.substring(0, 6).toUpperCase();
+      // Generate a unique 8-character referral code
+      const ownCode = generateReferralCode();
       
-      // Create user profile
+      // Create user profile in 'users' collection
       const userRef = doc(db, 'users', user.uid);
       await setDoc(userRef, {
         uid: user.uid,
         email: user.email,
         balance: 0,
         ownReferralCode: ownCode,
-        referredBy: referralCode || null,
+        referredBy: referralCode.trim().toUpperCase() || null,
+        createdAt: serverTimestamp(),
       });
 
-      // Handle referral reward for the referrer
-      if (referralCode) {
-        const referrersQuery = query(collection(db, 'users'), where('ownReferralCode', '==', referralCode.toUpperCase()));
+      // Handle referral logic
+      if (referralCode.trim()) {
+        const cleanCode = referralCode.trim().toUpperCase();
+        const referrersQuery = query(collection(db, 'users'), where('ownReferralCode', '==', cleanCode));
         const referrerDocs = await getDocs(referrersQuery);
+        
         if (!referrerDocs.empty) {
           const referrerDoc = referrerDocs.docs[0];
-          await updateDoc(doc(db, 'users', referrerDoc.id), {
+          const referrerId = referrerDoc.id;
+
+          // Credit the referrer ₹45
+          await updateDoc(doc(db, 'users', referrerId), {
             balance: increment(45)
           });
+
+          // Log the transaction in 'referrals' collection
+          await addDoc(collection(db, 'referrals'), {
+            referrerUid: referrerId,
+            referredUid: user.uid,
+            amount: 45,
+            timestamp: serverTimestamp(),
+          });
+
+          toast({ title: 'Bonus Applied!', description: 'You used a valid referral code.' });
+        } else {
+          toast({ variant: 'destructive', title: 'Invalid Code', description: 'No user found with that referral code.' });
         }
       }
 
@@ -153,6 +172,7 @@ export default function LoginPage() {
                     id="signup-referral"
                     type="text"
                     placeholder="ENTER CODE"
+                    className="uppercase"
                     value={referralCode}
                     onChange={(e) => setReferralCode(e.target.value)}
                   />
