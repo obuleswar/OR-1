@@ -4,7 +4,7 @@
 import { useState, useEffect, useCallback, useRef, useTransition } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
-import { ChevronLeft, Zap, Loader2, IndianRupee, History, Trophy, Info } from 'lucide-react';
+import { ChevronLeft, IndianRupee, History, Trophy, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -13,12 +13,6 @@ import { placeK3Bet, settleK3Round } from './actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ROUND_TIME = 60;
-
-const SUM_MULTIPLIERS: Record<number, string> = {
-  3: '207.36X', 4: '69.12X', 5: '34.56X', 6: '20.74X', 7: '13.83X', 8: '9.88X',
-  9: '8.3X', 10: '7.68X', 11: '7.68X', 12: '8.3X', 13: '9.88X', 14: '13.83X',
-  15: '20.74X', 16: '34.56X', 17: '69.12X', 18: '207.36X'
-};
 
 function DiceFace({ value, className }: { value: number; className?: string }) {
   const dots: Record<number, number[]> = {
@@ -54,7 +48,6 @@ export default function K3LotrePage() {
   const [currentPeriod, setCurrentPeriod] = useState('');
   const [isInitialized, setIsInitialized] = useState(false);
   const [isPlacingBet, setIsPlacingBet] = useState(false);
-  const [activeTab, setActiveTab] = useState('total');
 
   const [animatingDice, setAnimatingDice] = useState([1, 1, 1]);
   const [isDiceAnimating, setIsDiceAnimating] = useState(false);
@@ -90,7 +83,6 @@ export default function K3LotrePage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  // Handle dice animation when results change
   useEffect(() => {
     if (recentResults && recentResults.length > 0 && !isDiceAnimating) {
       const latest = recentResults[0];
@@ -117,7 +109,6 @@ export default function K3LotrePage() {
       lastSettledPeriod.current = prevPeriod;
       startTransition(() => {
         setIsDiceAnimating(true);
-        // Simulate dice roll animation
         const interval = setInterval(() => {
           setAnimatingDice([
             Math.floor(Math.random() * 6) + 1,
@@ -193,7 +184,6 @@ export default function K3LotrePage() {
 
   return (
     <div className="container mx-auto px-0 max-w-lg min-h-screen bg-[#070123] text-white pb-24 font-body overflow-x-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between p-4 bg-[#0a043c] border-b border-white/5">
         <Link href="/earn">
           <ChevronLeft className="h-6 w-6" />
@@ -203,7 +193,6 @@ export default function K3LotrePage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {/* Period & Timer */}
         <div className="flex justify-between items-center">
           <div className="bg-white/5 rounded-full px-4 py-1 flex items-center gap-2 border border-white/10">
             <span className="text-sm font-bold tracking-tight">{currentPeriod}</span>
@@ -214,7 +203,6 @@ export default function K3LotrePage() {
           </div>
         </div>
 
-        {/* Dice Slot Container */}
         <div className="relative bg-[#00c99e] p-6 rounded-[2rem] border-4 border-[#009c7a] shadow-[0_10px_30px_rgba(0,0,0,0.5)]">
           <div className="flex justify-center gap-4 py-4 bg-black/20 rounded-2xl border border-black/10">
             {animatingDice.map((val, idx) => (
@@ -225,7 +213,6 @@ export default function K3LotrePage() {
           <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/2 w-4 h-8 bg-[#009c7a] rounded-l-lg" />
         </div>
 
-        {/* Betting Tabs */}
         <Tabs defaultValue="total" className="w-full">
           <TabsList className="grid grid-cols-4 bg-[#1a144e] p-1 rounded-xl h-12">
             <TabsTrigger value="total" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">Total</TabsTrigger>
@@ -234,35 +221,32 @@ export default function K3LotrePage() {
             <TabsTrigger value="diff" className="rounded-lg text-xs font-bold data-[state=active]:bg-[#00c99e]">Different</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="total" className="space-y-6">
-            {/* Number Grid */}
-            <div className="grid grid-cols-4 gap-3 mt-6">
-              {Object.entries(SUM_MULTIPLIERS).map(([num, mult]) => (
-                <button
-                  key={num}
-                  onClick={() => handleBet(num)}
-                  className="flex flex-col items-center justify-center aspect-square rounded-full border-2 border-white/10 bg-gradient-to-b from-white/5 to-white/10 hover:border-[#00c99e] transition-all"
-                  style={{
-                    background: parseInt(num) % 2 === 0 ? 'linear-gradient(to bottom, #00c99e22, #00c99e44)' : 'linear-gradient(to bottom, #ff174422, #ff174444)'
-                  }}
-                >
-                  <span className="text-xl font-black">{num}</span>
-                  <span className="text-[8px] font-bold opacity-60">{mult}</span>
+          <TabsContent value="total" className="pt-6">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => handleBet('Small')} className="h-20 bg-[#2979ff] rounded-2xl font-black text-sm italic shadow-lg active:scale-95 flex flex-col items-center justify-center">
+                  <span>SMALL</span>
+                  <span className="text-[10px] opacity-60">2X</span>
                 </button>
-              ))}
-            </div>
-
-            {/* BS / OE Buttons */}
-            <div className="grid grid-cols-4 gap-3">
-              <button onClick={() => handleBet('Small')} className="h-14 bg-[#2979ff] rounded-xl font-black text-sm italic shadow-lg active:scale-95">SMALL<br/><span className="text-[10px] opacity-60">2X</span></button>
-              <button onClick={() => handleBet('Big')} className="h-14 bg-[#ff9100] rounded-xl font-black text-sm italic shadow-lg active:scale-95">BIG<br/><span className="text-[10px] opacity-60">2X</span></button>
-              <button onClick={() => handleBet('Even')} className="h-14 bg-[#00e676] rounded-xl font-black text-sm italic shadow-lg active:scale-95">EVEN<br/><span className="text-[10px] opacity-60">2X</span></button>
-              <button onClick={() => handleBet('Odd')} className="h-14 bg-[#ff1744] rounded-xl font-black text-sm italic shadow-lg active:scale-95">ODD<br/><span className="text-[10px] opacity-60">2X</span></button>
+                <button onClick={() => handleBet('Big')} className="h-20 bg-[#ff9100] rounded-2xl font-black text-sm italic shadow-lg active:scale-95 flex flex-col items-center justify-center">
+                  <span>BIG</span>
+                  <span className="text-[10px] opacity-60">2X</span>
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button onClick={() => handleBet('Even')} className="h-20 bg-[#00e676] rounded-2xl font-black text-sm italic shadow-lg active:scale-95 flex flex-col items-center justify-center">
+                  <span>EVEN</span>
+                  <span className="text-[10px] opacity-60">2X</span>
+                </button>
+                <button onClick={() => handleBet('Odd')} className="h-20 bg-[#ff1744] rounded-2xl font-black text-sm italic shadow-lg active:scale-95 flex flex-col items-center justify-center">
+                  <span>ODD</span>
+                  <span className="text-[10px] opacity-60">2X</span>
+                </button>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
 
-        {/* Chip Selector */}
         <div className="bg-black/40 p-3 rounded-full border border-white/5 mt-4">
           <div className="flex justify-between items-center px-1">
             {[1, 5, 10, 20, 50, 100].map((val) => (
@@ -282,7 +266,6 @@ export default function K3LotrePage() {
           </div>
         </div>
 
-        {/* Wallet Display */}
         <div className="flex justify-center mt-4">
           <div className="bg-black/40 px-6 py-2 rounded-full flex items-center gap-3 border border-white/5">
             <div className="w-5 h-5 rounded-full bg-yellow-500 flex items-center justify-center">
@@ -292,7 +275,6 @@ export default function K3LotrePage() {
           </div>
         </div>
 
-        {/* Results History */}
         <div className="mt-8 space-y-4">
           <div className="flex gap-2">
             <Button variant="ghost" className="bg-[#00c99e] text-white rounded-lg h-10 px-6 text-sm font-bold">Game history</Button>
