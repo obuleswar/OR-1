@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
 import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
 import { IndianRupee, Zap, ChevronLeft, Loader2, History, Trophy } from 'lucide-react';
@@ -31,6 +31,9 @@ export default function WingoPage() {
   const [betType, setBetType] = useState('');
   const [isPlacingBet, setIsPlacingBet] = useState(false);
 
+  // Use a ref to track the last settled period to avoid double settlement
+  const lastSettledPeriod = useRef<string | null>(null);
+
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return doc(db, 'users', user.uid);
@@ -53,28 +56,34 @@ export default function WingoPage() {
     return `${yyyymmdd}${roundNumber.toString().padStart(6, '0')}`;
   }, []);
 
+  // Sync Period and Timer
   useEffect(() => {
-    const updatePeriod = () => {
-      const period = generatePeriod();
-      setCurrentPeriod(period);
-      
-      const now = new Date();
-      const secondsInRound = (now.getSeconds() % ROUND_TIME);
-      setTimeLeft(ROUND_TIME - secondsInRound);
-    };
-
-    updatePeriod();
     const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        if (prev <= 1) {
-          // Trigger settlement for the ending period
-          settleRound(currentPeriod);
-          updatePeriod();
-          return ROUND_TIME;
+      const now = new Date();
+      const period = generatePeriod();
+      const secondsInRound = (now.getSeconds() % ROUND_TIME);
+      const remaining = ROUND_TIME - secondsInRound;
+
+      setTimeLeft(remaining);
+      
+      // Update the current active period in state if it changed
+      if (period !== currentPeriod) {
+        setCurrentPeriod(period);
+      }
+
+      // If we are at the very start of a new round, settle the PREVIOUS one
+      if (remaining >= ROUND_TIME - 1) {
+        // Calculate the previous period ID (crude but effective for 30s intervals)
+        const prevPeriodNum = parseInt(period) - 1;
+        const prevPeriod = prevPeriodNum.toString();
+
+        if (lastSettledPeriod.current !== prevPeriod) {
+          lastSettledPeriod.current = prevPeriod;
+          settleRound(prevPeriod);
         }
-        return prev - 1;
-      });
+      }
     }, 1000);
+
     return () => clearInterval(timer);
   }, [currentPeriod, generatePeriod]);
 
@@ -88,7 +97,10 @@ export default function WingoPage() {
   };
 
   const onConfirmBet = async () => {
-    if (!user) return;
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Sign In Required', description: 'Please log in to place bets.' });
+      return;
+    }
     setIsPlacingBet(true);
     const res = await placeBet(user.uid, currentPeriod, betType, selectedAmount);
     if (res.success) {
