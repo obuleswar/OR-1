@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -27,6 +28,7 @@ const EARNING_TASKS = [
     icon: Tv,
     color: 'text-blue-400',
     bg: 'bg-blue-400/10',
+    href: '#',
   },
   {
     id: 'play-games',
@@ -35,6 +37,7 @@ const EARNING_TASKS = [
     icon: Gamepad2,
     color: 'text-green-400',
     bg: 'bg-green-400/10',
+    href: '#',
   },
   {
     id: 'mines',
@@ -43,6 +46,7 @@ const EARNING_TASKS = [
     icon: Bomb,
     color: 'text-yellow-400',
     bg: 'bg-yellow-400/10',
+    href: '#',
   },
   {
     id: 'wingo',
@@ -51,6 +55,7 @@ const EARNING_TASKS = [
     icon: Dices,
     color: 'text-orange-400',
     bg: 'bg-orange-400/10',
+    href: '/earn/wingo',
   },
   {
     id: 'k3-lotre',
@@ -59,6 +64,7 @@ const EARNING_TASKS = [
     icon: Layers,
     color: 'text-cyan-400',
     bg: 'bg-cyan-400/10',
+    href: '#',
   },
   {
     id: 'dragon-tiger',
@@ -68,6 +74,7 @@ const EARNING_TASKS = [
     color: 'text-pink-400',
     bg: 'bg-pink-400/10',
     highlight: true,
+    href: '#',
   },
   {
     id: 'refer-earn',
@@ -76,6 +83,7 @@ const EARNING_TASKS = [
     icon: Users,
     color: 'text-purple-400',
     bg: 'bg-purple-400/10',
+    href: '#',
   },
 ];
 
@@ -125,9 +133,8 @@ export default function EarnPage() {
           const Icon = task.icon;
           const isRefer = task.id === 'refer-earn';
 
-          return (
+          const content = (
             <Card
-              key={task.id}
               className={cn(
                 "bg-[#111111] border-white/5 hover:bg-[#161616] transition-all cursor-pointer h-52 group overflow-hidden relative",
                 task.highlight && "border-primary/30"
@@ -139,7 +146,6 @@ export default function EarnPage() {
               }}
             >
               <CardContent className="p-0 h-full flex flex-col items-center justify-center text-center">
-                {/* Icon Container */}
                 <div className="w-16 h-16 rounded-2xl bg-[#1a1a1a] flex items-center justify-center mb-4 group-hover:scale-110 transition-transform relative">
                   <Icon className={cn("w-8 h-8", task.color)} />
                   {isRefer && copied && (
@@ -149,7 +155,6 @@ export default function EarnPage() {
                   )}
                 </div>
 
-                {/* Text Content */}
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white mb-1">
                   {task.title}
                 </h3>
@@ -172,6 +177,16 @@ export default function EarnPage() {
               </CardContent>
             </Card>
           );
+
+          if (task.href !== '#' && !isRefer) {
+            return (
+              <Link key={task.id} href={task.href}>
+                {content}
+              </Link>
+            );
+          }
+
+          return <div key={task.id}>{content}</div>;
         })}
       </div>
     </div>
