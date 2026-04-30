@@ -4,18 +4,8 @@ import { PlaceHolderImages, addPlaceholderImage, initializePlaceholderImages } f
 // Initialize with default data
 initializePlaceholderImages();
 
-const APPS: App[] = [
-    {
-        id: "1",
-        slug: "inr-miner",
-        title: "INR MINER",
-        version: "1.0.0",
-        description: "A simple and intuitive app to help you track your daily expenses and manage your personal budget. Keep an eye on your spending and save more with INR MINER.",
-        iconUrl: "icon-pocket-money",
-        screenshots: ["ss-pocket-money-1", "ss-pocket-money-2", "ss-pocket-money-3"],
-        downloadCount: 500,
-    }
-];
+// The catalog is now empty by default.
+const APPS: App[] = [];
 
 export function getApps(): App[] {
   return APPS;

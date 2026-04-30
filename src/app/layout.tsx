@@ -7,8 +7,8 @@ import { Footer } from '@/components/Footer';
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'INR MINER',
-  description: 'A simple app to track your expenses.',
+  title: 'App Store',
+  description: 'Manage your apps and referrals.',
 };
 
 export default function RootLayout({

@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -91,7 +90,7 @@ export default function LoginPage() {
         }
       }
 
-      toast({ title: 'Account created!', description: 'Welcome to INR MINER.' });
+      toast({ title: 'Account created!', description: 'Welcome to the App Store.' });
       router.push('/dashboard');
     } catch (error: any) {
       toast({
