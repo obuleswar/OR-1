@@ -64,7 +64,7 @@ const EARNING_TASKS = [
     icon: Layers,
     color: 'text-cyan-400',
     bg: 'bg-cyan-400/10',
-    href: '#',
+    href: '/earn/k3',
   },
   {
     id: 'dragon-tiger',
