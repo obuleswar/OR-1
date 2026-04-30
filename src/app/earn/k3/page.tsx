@@ -49,7 +49,6 @@ export default function K3LotrePage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  // Settlement trigger when period changes
   useEffect(() => {
     if (!isInitialized || !currentPeriod) return;
 
@@ -127,7 +126,6 @@ export default function K3LotrePage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#070123] text-white pb-24 font-body">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Link href="/earn">
           <Button variant="ghost" size="icon" className="text-white">
@@ -140,7 +138,6 @@ export default function K3LotrePage() {
         </Button>
       </div>
 
-      {/* Mode Badge */}
       <div className="flex justify-center mb-6">
         <div className="bg-gradient-to-b from-[#1a144e] to-[#070123] border border-blue-500/40 rounded-xl px-10 py-3 flex flex-col items-center shadow-lg relative overflow-hidden group">
           <Zap className="w-5 h-5 text-blue-400 mb-1" />
@@ -149,7 +146,6 @@ export default function K3LotrePage() {
         </div>
       </div>
 
-      {/* Main Info Card */}
       <div className="bg-[#1a144e]/60 rounded-[2rem] p-6 mb-8 border border-white/5 shadow-2xl relative">
         <div className="flex justify-between items-start mb-10">
           <div className="bg-black/40 px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/10">
@@ -189,7 +185,6 @@ export default function K3LotrePage() {
         )}
       </div>
 
-      {/* Betting Buttons */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="space-y-2">
           <button 
@@ -198,7 +193,6 @@ export default function K3LotrePage() {
           >
             <span className="text-2xl font-black italic">BIG</span>
           </button>
-          <p className="text-center text-[8px] font-bold uppercase text-white/40">Spend: ₹0</p>
         </div>
 
         <div className="space-y-2">
@@ -208,7 +202,6 @@ export default function K3LotrePage() {
           >
             <span className="text-2xl font-black italic">SMALL</span>
           </button>
-          <p className="text-center text-[8px] font-bold uppercase text-white/40">Spend: ₹0</p>
         </div>
 
         <div className="space-y-2">
@@ -218,7 +211,6 @@ export default function K3LotrePage() {
           >
             <span className="text-2xl font-black italic">ODD</span>
           </button>
-          <p className="text-center text-[8px] font-bold uppercase text-white/40">Spend: ₹0</p>
         </div>
 
         <div className="space-y-2">
@@ -228,19 +220,17 @@ export default function K3LotrePage() {
           >
             <span className="text-2xl font-black italic">EVEN</span>
           </button>
-          <p className="text-center text-[8px] font-bold uppercase text-white/40">Spend: ₹0</p>
         </div>
       </div>
 
-      {/* Chip Selector */}
       <div className="bg-black/40 p-5 rounded-full border border-white/5 shadow-inner">
         <div className="flex justify-between items-center">
-          {[1, 5, 10, 50, 100].map((val) => (
+          {[1, 5, 10, 20, 50, 100].map((val) => (
             <button
               key={val}
               onClick={() => setSelectedChip(val)}
               className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center text-sm font-black transition-all relative",
+                "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black transition-all relative",
                 selectedChip === val 
                   ? "bg-blue-500 text-white scale-125 shadow-[0_0_20px_rgba(59,130,246,0.6)] z-10 border-2 border-white/20" 
                   : "bg-white/5 text-white/30"

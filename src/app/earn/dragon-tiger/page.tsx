@@ -49,7 +49,6 @@ export default function DragonTigerPage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  // Settlement trigger when period changes
   useEffect(() => {
     if (!isInitialized || !currentPeriod) return;
 
@@ -114,7 +113,6 @@ export default function DragonTigerPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Link href="/earn">
           <Button variant="ghost" size="icon" className="text-white">
@@ -142,7 +140,6 @@ export default function DragonTigerPage() {
         </div>
       </div>
 
-      {/* Main Game Stage */}
       <div className="relative aspect-video bg-gradient-to-b from-[#111] to-[#050505] rounded-3xl mb-12 flex flex-col items-center justify-center overflow-hidden border border-white/5 shadow-2xl">
          <div className="absolute inset-0 opacity-10 pointer-events-none">
             <svg className="w-full h-full" viewBox="0 0 100 100">
@@ -164,7 +161,6 @@ export default function DragonTigerPage() {
          )}
       </div>
 
-      {/* Betting Areas */}
       <div className="grid grid-cols-3 gap-4 mb-12">
         <button 
           onClick={() => handleBet('Dragon')}
@@ -191,15 +187,14 @@ export default function DragonTigerPage() {
         </button>
       </div>
 
-      {/* Chip Selector */}
       <div className="bg-[#111]/50 p-4 rounded-full border border-white/5 shadow-inner">
         <div className="flex justify-between items-center px-2">
-          {[1, 5, 10, 50, 100].map((val) => (
+          {[1, 5, 10, 20, 50, 100].map((val) => (
             <button
               key={val}
               onClick={() => setSelectedChip(val)}
               className={cn(
-                "w-12 h-12 rounded-full flex items-center justify-center text-xs font-black transition-all relative",
+                "w-10 h-10 rounded-full flex items-center justify-center text-[10px] font-black transition-all relative",
                 selectedChip === val 
                   ? "bg-yellow-500 text-black scale-125 shadow-[0_0_20px_rgba(234,179,8,0.5)] z-10" 
                   : "bg-white/10 text-white/40"

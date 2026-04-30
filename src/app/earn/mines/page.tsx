@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useTransition } from 'react';
@@ -17,11 +18,9 @@ export default function MinesPage() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
 
-  // Game Settings
   const [betAmount, setBetAmount] = useState(10);
   const [bombCount, setBombCount] = useState(3);
   
-  // Active Game State
   const [gameId, setGameId] = useState<string | null>(null);
   const [revealedIndices, setRevealedIndices] = useState<number[]>([]);
   const [bombPositions, setBombPositions] = useState<number[]>([]);
@@ -91,7 +90,6 @@ export default function MinesPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <Link href="/earn">
           <Button variant="ghost" size="icon" className="text-white">
@@ -110,7 +108,6 @@ export default function MinesPage() {
         </div>
       </div>
 
-      {/* Multiplier & Win Indicators */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
           <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Multiplier</p>
@@ -124,7 +121,6 @@ export default function MinesPage() {
         </div>
       </div>
 
-      {/* 5x5 Grid */}
       <div className="bg-[#0a0a0a] aspect-square grid grid-cols-5 gap-3 p-4 rounded-[2rem] border border-white/5 shadow-2xl mb-8">
         {Array.from({ length: 25 }).map((_, i) => {
           const isRevealed = revealedIndices.includes(i);
@@ -157,7 +153,6 @@ export default function MinesPage() {
         })}
       </div>
 
-      {/* Control Panel */}
       <div className="bg-[#111] p-6 rounded-[2.5rem] border border-white/5 space-y-6">
         <div className="flex items-center justify-between">
           <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Select Mines</p>
@@ -186,14 +181,14 @@ export default function MinesPage() {
 
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-white/5 rounded-xl border border-white/5 p-1 flex">
-              {[10, 50, 100, 500].map(amt => (
+            <div className="flex-1 bg-white/5 rounded-xl border border-white/5 p-1 flex overflow-x-auto">
+              {[1, 5, 10, 20, 50, 100].map(amt => (
                 <button
                   key={amt}
                   onClick={() => setBetAmount(amt)}
                   disabled={gameStatus === 'active'}
                   className={cn(
-                    "flex-1 h-10 rounded-lg text-[10px] font-bold transition-all",
+                    "flex-1 h-10 min-w-[45px] rounded-lg text-[10px] font-bold transition-all",
                     betAmount === amt ? "bg-white/10 text-white" : "text-white/40"
                   )}
                 >
@@ -223,7 +218,6 @@ export default function MinesPage() {
         </div>
       </div>
 
-      {/* Status Overlay for Finished Games */}
       {gameStatus !== 'active' && gameStatus !== 'idle' && (
         <div className="mt-6 text-center animate-in fade-in slide-in-from-bottom-4">
           <p className={cn(

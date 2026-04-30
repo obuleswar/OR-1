@@ -64,7 +64,6 @@ export default function WingoPage() {
     setIsInitialized(true);
   }, [generatePeriod]);
 
-  // Settlement trigger when period changes
   useEffect(() => {
     if (!isInitialized || !currentPeriod) return;
 
@@ -86,7 +85,6 @@ export default function WingoPage() {
     }
   }, [currentPeriod, isInitialized]);
 
-  // Clock Timer
   useEffect(() => {
     if (!isInitialized) return;
 
@@ -144,7 +142,6 @@ export default function WingoPage() {
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
-      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <Link href="/earn">
           <Button variant="ghost" size="icon" className="text-white hover:bg-white/5">
@@ -161,7 +158,6 @@ export default function WingoPage() {
         </div>
       </div>
 
-      {/* Stats Card */}
       <div className="bg-gradient-to-r from-primary to-[#ff4b2b] rounded-[2rem] p-6 mb-6 shadow-xl relative overflow-hidden">
         <div className="relative z-10 flex flex-col gap-6">
           <div className="flex justify-between items-start">
@@ -190,14 +186,12 @@ export default function WingoPage() {
         )}
       </div>
 
-      {/* Color Buttons */}
       <div className="grid grid-cols-3 gap-3 mb-6">
         <Button onClick={() => handleBetClick('Green')} className="h-16 bg-[#00e676] hover:bg-[#00e676]/90 rounded-2xl font-bold text-lg">GREEN</Button>
         <Button onClick={() => handleBetClick('Violet')} className="h-16 bg-[#9c27b0] hover:bg-[#9c27b0]/90 rounded-2xl font-bold text-lg">VIOLET</Button>
         <Button onClick={() => handleBetClick('Red')} className="h-16 bg-[#ff1744] hover:bg-[#ff1744]/90 rounded-2xl font-bold text-lg">RED</Button>
       </div>
 
-      {/* Number Grid */}
       <div className="bg-[#111] rounded-[2rem] p-6 mb-6">
         <div className="grid grid-cols-5 gap-4">
           {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -212,13 +206,11 @@ export default function WingoPage() {
         </div>
       </div>
 
-      {/* Big/Small Buttons */}
       <div className="grid grid-cols-2 gap-4 mb-8">
         <Button onClick={() => handleBetClick('Big')} className="h-16 bg-[#ff9100] hover:bg-[#ff9100]/90 rounded-2xl font-bold text-xl uppercase italic">Big</Button>
         <Button onClick={() => handleBetClick('Small')} className="h-16 bg-[#2979ff] hover:bg-[#2979ff]/90 rounded-2xl font-bold text-xl uppercase italic">Small</Button>
       </div>
 
-      {/* Recent Results Table */}
       <div className="bg-[#111] rounded-[2rem] p-6 mb-24">
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Recent Results</h3>
@@ -240,7 +232,6 @@ export default function WingoPage() {
         </div>
       </div>
 
-      {/* Betting Dialog */}
       <Dialog open={isBettingOpen} onOpenChange={setIsBettingOpen}>
         <DialogContent className="bg-[#111] border-white/10 text-white rounded-3xl">
           <DialogHeader>
@@ -249,14 +240,14 @@ export default function WingoPage() {
           <div className="space-y-6 py-4">
             <div className="space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Amount</p>
-              <div className="flex justify-between gap-2">
-                {[10, 50, 100, 500, 1000].map((amt) => (
+              <div className="flex justify-between gap-1 overflow-x-auto pb-2">
+                {[1, 5, 10, 20, 50, 100].map((amt) => (
                   <Button
                     key={amt}
                     variant="ghost"
                     onClick={() => setSelectedAmount(amt)}
                     className={cn(
-                      "flex-1 h-12 rounded-xl font-bold transition-all border border-white/5",
+                      "flex-1 h-12 min-w-[50px] rounded-xl font-bold transition-all border border-white/5 text-xs",
                       selectedAmount === amt ? "bg-primary text-white" : "bg-white/5 text-white/40"
                     )}
                   >
