@@ -28,9 +28,11 @@
       "properties": {
         "userId": { "type": "string" },
         "type": { "type": "string", "enum": ["deposit", "withdraw", "bet", "win", "bonus", "referral"] },
+        "status": { "type": "string", "enum": ["pending", "completed", "rejected"], "description": "Status for manual verification items like deposits/withdrawals." },
         "amount": { "type": "number" },
         "description": { "type": "string" },
-        "timestamp": { "type": "string", "format": "date-time" }
+        "timestamp": { "type": "string", "format": "date-time" },
+        "utr": { "type": "string", "description": "UTR for deposits" }
       }
     },
     "Bet": {

@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, increment, serverTimestamp, addDoc, collection, query, where, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon, Lock, ShieldAlert } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon, Lock, ShieldAlert, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -71,7 +71,8 @@ export default function DashboardPage() {
     });
   }, [transactions]);
 
-  const getIcon = (type: string) => {
+  const getIcon = (type: string, status?: string) => {
+    if (status === 'pending') return <Clock className="w-5 h-5 text-yellow-500 animate-pulse" />;
     switch (type) {
       case 'deposit': return <ArrowUpCircle className="w-5 h-5 text-green-500" />;
       case 'withdraw': return <ArrowDownCircle className="w-5 h-5 text-red-500" />;
@@ -107,25 +108,24 @@ export default function DashboardPage() {
     }
 
     if (userDocRef && db) {
-      updateDocumentNonBlocking(userDocRef, {
-        balance: increment(amount),
-        requiredWager: increment(amount), // Add 1x wager requirement on deposit
-        lastDepositAt: serverTimestamp(),
-        lastDepositDetails: { amount, utr, email: depositEmail }
-      });
-
-      // Log transaction
+      // NOTE: We no longer update the user balance directly.
+      // The admin will verify the transaction manually in the console.
+      
+      // Log transaction as pending
       await addDoc(collection(db, 'transactions'), {
         userId: user!.uid,
         type: 'deposit',
+        status: 'pending',
         amount: amount,
-        description: `Deposit via UPI (UTR: ${utr})`,
+        description: `Deposit Request via UPI (UTR: ${utr})`,
+        utr: utr,
+        email: depositEmail,
         timestamp: serverTimestamp()
       });
 
       toast({
         title: 'Deposit submitted',
-        description: `₹${amount.toFixed(2)} will be verified and added to your wallet. Wagering requirement updated.`,
+        description: `₹${amount.toFixed(2)} request has been sent for manual verification.`,
       });
       setIsDepositOpen(false);
       setDepositAmount('');
@@ -138,15 +138,15 @@ export default function DashboardPage() {
     e.preventDefault();
     const amount = parseFloat(withdrawAmount);
     const currentBalance = profile?.balance || 0;
-    const requiredWager = profile?.requiredWager || 0;
+    const remainingWager = profile?.requiredWager || 0;
 
     if (!profile?.lastDepositAt) {
         toast({ variant: 'destructive', title: 'Account Not Verified', description: 'Please make a deposit to unlock withdrawals.' });
         return;
     }
 
-    if (requiredWager > 0) {
-      toast({ variant: 'destructive', title: 'Wagering Requirement Not Met', description: `You need to wager ₹${requiredWager.toFixed(2)} more before withdrawing.` });
+    if (remainingWager > 0) {
+      toast({ variant: 'destructive', title: 'Wagering Requirement Not Met', description: `You need to wager ₹${remainingWager.toFixed(2)} more before withdrawing.` });
       return;
     }
 
@@ -180,8 +180,9 @@ export default function DashboardPage() {
       await addDoc(collection(db, 'transactions'), {
         userId: user!.uid,
         type: 'withdraw',
+        status: 'pending',
         amount: amount,
-        description: `Withdrawal to ${withdrawMethod.toUpperCase()} (${details})`,
+        description: `Withdrawal Request to ${withdrawMethod.toUpperCase()} (${details})`,
         timestamp: serverTimestamp()
       });
 
@@ -276,10 +277,15 @@ export default function DashboardPage() {
               <div key={tx.id} className="bg-[#111] border border-white/5 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-bottom-1">
                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
-                       {getIcon(tx.type)}
+                       {getIcon(tx.type, tx.status)}
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-white uppercase">{tx.type}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs font-bold text-white uppercase">{tx.type}</p>
+                        {tx.status === 'pending' && (
+                          <span className="text-[8px] font-black bg-yellow-500/10 text-yellow-500 px-1.5 py-0.5 rounded uppercase tracking-widest">Pending</span>
+                        )}
+                      </div>
                       <p className="text-[10px] text-white/30 font-bold">
                         {tx.timestamp?.toDate ? format(tx.timestamp.toDate(), 'dd MMM, HH:mm') : 'Just now'}
                       </p>
@@ -338,7 +344,12 @@ export default function DashboardPage() {
               onChange={(e) => setDepositEmail(e.target.value)}
               required
             />
-            <Button type="submit" className="w-full bg-primary font-bold uppercase h-12 rounded-xl">Confirm Deposit</Button>
+            <div className="bg-blue-500/10 p-3 rounded-xl border border-blue-500/20 mb-2">
+              <p className="text-[9px] font-bold text-blue-400 uppercase leading-relaxed">
+                Your deposit will be manually verified by our team. Please allow up to 30 minutes for the balance to reflect in your wallet.
+              </p>
+            </div>
+            <Button type="submit" className="w-full bg-primary font-bold uppercase h-12 rounded-xl">Submit Deposit Request</Button>
           </form>
         </DialogContent>
       </Dialog>
