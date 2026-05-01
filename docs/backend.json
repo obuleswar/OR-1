@@ -60,6 +60,14 @@
       "description": "Generic game round result.",
       "properties": {
         "period": { "type": "string" },
+        "num": { "type": "number" },
+        "bs": { "type": "string" },
+        "color": { "type": "array", "items": { "type": "string" } },
+        "dice": { "type": "array", "items": { "type": "number" } },
+        "sum": { "type": "number" },
+        "winner": { "type": "string" },
+        "dragonCard": { "type": "number" },
+        "tigerCard": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
     }

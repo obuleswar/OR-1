@@ -8,6 +8,9 @@ service cloud.firestore {
      * This is required because the prototype uses client-side logic and 
      * server actions (via client SDK) to handle multi-user game settlements,
      * referrals, and transaction logging.
+     *
+     * This global rule resolves "Missing or insufficient permissions" errors
+     * when listing collections like /transactions or /bets.
      */
     
     match /{document=**} {
