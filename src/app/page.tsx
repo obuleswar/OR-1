@@ -3,21 +3,78 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { IndianRupee, ArrowRight, Wallet, History, Zap, LayoutDashboard, ChevronRight } from 'lucide-react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { IndianRupee, ArrowRight, Wallet, History, Zap, LayoutDashboard, ChevronRight, Loader2 } from 'lucide-react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, serverTimestamp, increment, collection } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
+import { useState, useMemo } from 'react';
+import { useToast } from '@/hooks/use-toast';
+import { isToday } from 'date-fns';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
   const db = useFirestore();
+  const { toast } = useToast();
+  const [isClaiming, setIsClaiming] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return doc(db, 'users', user.uid);
   }, [db, user?.uid]);
 
-  const { data: profile } = useDoc(userDocRef);
+  const { data: profile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  const canClaimBonus = useMemo(() => {
+    if (!profile) return false;
+    if (!profile.lastBonusAt) return true;
+    
+    const lastDate = profile.lastBonusAt.toDate ? profile.lastBonusAt.toDate() : new Date(profile.lastBonusAt);
+    return !isToday(lastDate);
+  }, [profile]);
+
+  const handleClaimBonus = async () => {
+    if (!user || !userDocRef || !db) return;
+    if (!canClaimBonus) {
+      toast({
+        title: "Already Claimed",
+        description: "You have already claimed your daily bonus today. Come back tomorrow!",
+      });
+      return;
+    }
+
+    setIsClaiming(true);
+
+    try {
+      const bonusAmount = 0.48;
+      
+      updateDocumentNonBlocking(userDocRef, {
+        balance: increment(bonusAmount),
+        totalEarning: increment(bonusAmount),
+        lastBonusAt: serverTimestamp()
+      });
+
+      addDocumentNonBlocking(collection(db, 'transactions'), {
+        userId: user.uid,
+        type: 'bonus',
+        amount: bonusAmount,
+        description: 'Daily Check-in Bonus',
+        timestamp: serverTimestamp()
+      });
+
+      toast({
+        title: "Bonus Claimed!",
+        description: `₹${bonusAmount.toFixed(2)} added to your wallet.`,
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Claim Failed",
+        description: "Could not claim bonus at this time.",
+      });
+    } finally {
+      setIsClaiming(false);
+    }
+  };
 
   if (isUserLoading) {
     return <div className="flex items-center justify-center min-h-[60vh]">Loading...</div>;
@@ -78,10 +135,26 @@ export default function Home() {
               </div>
               <h2 className="font-bold text-white">Daily Bonus</h2>
             </div>
-            <span className="text-xs text-primary font-bold">Ready</span>
+            <span className={cn("text-xs font-bold", canClaimBonus ? "text-primary" : "text-muted-foreground")}>
+              {canClaimBonus ? "Ready" : "Claimed"}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">Check in daily to increase your earnings multiplier. Consistency pays off!</p>
-          <Button variant="outline" className="w-full border-primary/20 hover:bg-primary/10 text-white font-bold h-10 rounded-xl">Claim Bonus</Button>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+            {canClaimBonus 
+              ? "Check in today to receive your ₹0.48 bonus reward!" 
+              : "You've already collected today's reward. Come back tomorrow for more!"}
+          </p>
+          <Button 
+            variant={canClaimBonus ? "default" : "outline"}
+            className={cn(
+              "w-full font-bold h-10 rounded-xl transition-all",
+              canClaimBonus ? "bg-primary text-white" : "border-white/10 text-white/40 cursor-not-allowed"
+            )}
+            onClick={handleClaimBonus}
+            disabled={!canClaimBonus || isClaiming}
+          >
+            {isClaiming ? <Loader2 className="w-4 h-4 animate-spin" /> : canClaimBonus ? "Claim ₹0.48 Bonus" : "Claimed Today"}
+          </Button>
         </section>
       </div>
     );

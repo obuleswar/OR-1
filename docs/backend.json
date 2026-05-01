@@ -14,7 +14,8 @@
         "createdAt": { "type": "string", "format": "date-time" },
         "totalEarning": { "type": "number" },
         "lastDepositAt": { "type": "string", "format": "date-time" },
-        "lastWithdrawAt": { "type": "string", "format": "date-time" }
+        "lastWithdrawAt": { "type": "string", "format": "date-time" },
+        "lastBonusAt": { "type": "string", "format": "date-time" }
       }
     },
     "Transaction": {
