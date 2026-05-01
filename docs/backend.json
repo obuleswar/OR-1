@@ -7,7 +7,9 @@
       "description": "User account and wallet information.",
       "properties": {
         "uid": { "type": "string" },
+        "name": { "type": "string" },
         "email": { "type": "string" },
+        "phoneNumber": { "type": "string" },
         "balance": { "type": "number" },
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
