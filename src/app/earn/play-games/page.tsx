@@ -2,6 +2,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ChevronLeft, Gamepad2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -87,7 +88,7 @@ export default function PlayGamesMenu() {
         <ul className="space-y-3">
           <li className="flex gap-3 text-xs font-bold text-white/60">
             <span className="text-primary">1.</span>
-            <span>Select a game and place your skill-bet.</span>
+            <span>Select a game to start.</span>
           </li>
           <li className="flex gap-3 text-xs font-bold text-white/60">
             <span className="text-primary">2.</span>
@@ -99,7 +100,7 @@ export default function PlayGamesMenu() {
           </li>
           <li className="flex gap-3 text-xs font-bold text-white/60">
             <span className="text-primary">4.</span>
-            <span>Receive 1.5x of your bet instantly in your wallet!</span>
+            <span>Receive ₹2.00 instantly in your wallet!</span>
           </li>
         </ul>
       </div>

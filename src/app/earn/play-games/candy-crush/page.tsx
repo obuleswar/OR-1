@@ -20,13 +20,13 @@ import { Label } from '@/components/ui/label';
 
 const GAME_TIME = 300; // 5 Minutes
 const GAME_URL = "https://html5.gamemonetize.co/jb0dcjocnv110l3a3tmmdxbnto6gwv8g/";
+const REWARD_AMOUNT = 2.00;
 
 export default function CandyCrushPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
 
-  const [betAmount, setBetAmount] = useState(10);
   const [timeLeft, setTimeLeft] = useState(0);
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'ended'>('idle');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -61,22 +61,9 @@ export default function CandyCrushPage() {
 
   const handleStartGame = () => {
     if (!user || !userDocRef) return toast({ variant: 'destructive', title: 'Sign in required' });
-    if ((profile?.balance || 0) < betAmount) return toast({ variant: 'destructive', title: 'Insufficient balance' });
 
     setIsProcessing(true);
     
-    updateDocumentNonBlocking(userDocRef, {
-      balance: increment(-betAmount)
-    });
-
-    addDocumentNonBlocking(collection(db, 'transactions'), {
-      userId: user.uid,
-      type: 'bet',
-      amount: betAmount,
-      description: `Candy Crush Session Bet`,
-      timestamp: serverTimestamp()
-    });
-
     setTimeLeft(GAME_TIME);
     setGameState('playing');
     setIsProcessing(false);
@@ -110,25 +97,23 @@ export default function CandyCrushPage() {
   };
 
   const processReward = async () => {
-    const payout = Math.floor(betAmount * 1.5);
-
-    if (payout > 0 && userDocRef && db) {
+    if (userDocRef && db) {
       updateDocumentNonBlocking(userDocRef, {
-        balance: increment(payout),
-        totalEarning: increment(payout - betAmount)
+        balance: increment(REWARD_AMOUNT),
+        totalEarning: increment(REWARD_AMOUNT)
       });
 
       addDocumentNonBlocking(collection(db, 'transactions'), {
         userId: user!.uid,
         type: 'win',
-        amount: payout,
-        description: `Candy Crush Session Reward`,
+        amount: REWARD_AMOUNT,
+        description: `Candy Crush Session Completion Reward`,
         timestamp: serverTimestamp()
       });
 
       toast({ 
         title: 'Verification Successful!', 
-        description: `Session completed! You earned ₹${payout.toFixed(2)}!` 
+        description: `Session completed! You earned ₹${REWARD_AMOUNT.toFixed(2)}!` 
       });
       setGameState('idle');
     }
@@ -150,7 +135,7 @@ export default function CandyCrushPage() {
         </Link>
         <div className="flex flex-col items-center">
            <h1 className="text-2xl font-black tracking-tighter italic text-pink-500 uppercase">Candy Crush</h1>
-           <p className="text-[10px] text-white/40 font-bold tracking-widest uppercase">Skill Reward</p>
+           <p className="text-[10px] text-white/40 font-bold tracking-widest uppercase">Free To Play</p>
         </div>
         <div className="bg-[#1a1a1a] px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/5">
            <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
@@ -191,7 +176,7 @@ export default function CandyCrushPage() {
                 <>
                   <div className="text-5xl mb-4">🍬</div>
                   <p className="text-lg font-bold text-white uppercase tracking-widest">
-                    Start 5m Candy Crush Session
+                    Complete 5m Session to Earn ₹{REWARD_AMOUNT.toFixed(2)}
                   </p>
                 </>
               ) : (
@@ -213,28 +198,10 @@ export default function CandyCrushPage() {
 
       <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-6 flex-shrink-0">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Select Bet</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reward Info</p>
           <div className="bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
-            <span className="text-[10px] font-black text-primary uppercase">1.5x Reward</span>
+            <span className="text-[10px] font-black text-primary uppercase">Fixed ₹{REWARD_AMOUNT.toFixed(2)}</span>
           </div>
-        </div>
-
-        <div className="flex justify-between gap-2">
-          {[10, 20, 50, 100].map((n) => (
-            <button
-              key={n}
-              onClick={() => setBetAmount(n)}
-              disabled={gameState === 'playing'}
-              className={cn(
-                "flex-1 h-12 rounded-xl font-black text-sm transition-all border",
-                betAmount === n 
-                  ? "bg-primary border-primary text-white shadow-[0_0_15px_rgba(255,0,0,0.4)]" 
-                  : "bg-white/5 border-white/5 text-white/40"
-              )}
-            >
-              ₹{n}
-            </button>
-          ))}
         </div>
 
         <Button 
