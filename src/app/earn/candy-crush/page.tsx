@@ -4,14 +4,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { doc, collection, serverTimestamp, increment } from 'firebase/firestore';
-import { ChevronLeft, IndianRupee, Loader2, Zap, Trophy, Heart, Star, Cloud, Moon, Ghost } from 'lucide-react';
+import { ChevronLeft, IndianRupee, Loader2, Zap, Trophy, Heart, Star, Cloud, Moon, Ghost, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 const GRID_SIZE = 7;
-const GAME_TIME = 60;
+const GAME_TIME = 300; // 5 Minutes
 const CANDY_TYPES = [
   { icon: Heart, color: 'text-red-500', bg: 'bg-red-500/10' },
   { icon: Star, color: 'text-yellow-400', bg: 'bg-yellow-400/10' },
@@ -32,6 +40,11 @@ export default function CandyCrushPage() {
   const [gameState, setGameState] = useState<'idle' | 'playing' | 'ended'>('idle');
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
+
+  // Captcha State
+  const [isCaptchaOpen, setIsCaptchaOpen] = useState(false);
+  const [captchaQuestion, setCaptchaQuestion] = useState({ a: 0, b: 0 });
+  const [captchaInput, setCaptchaInput] = useState('');
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -100,8 +113,45 @@ export default function CandyCrushPage() {
     return 0;
   };
 
-  const handleEndGame = async () => {
+  const handleEndGame = () => {
     setGameState('ended');
+    const multiplier = calculatePayout(score);
+    const payout = Math.floor(betAmount * multiplier);
+
+    if (payout > 0) {
+      // Trigger Verification Captcha
+      generateCaptcha();
+      setIsCaptchaOpen(true);
+    } else {
+      toast({ 
+        title: 'Session Ended', 
+        description: `Score: ${score}. Try again to earn rewards!` 
+      });
+    }
+  };
+
+  const generateCaptcha = () => {
+    setCaptchaQuestion({
+      a: Math.floor(Math.random() * 10) + 1,
+      b: Math.floor(Math.random() * 10) + 1
+    });
+    setCaptchaInput('');
+  };
+
+  const handleCaptchaSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const answer = captchaQuestion.a + captchaQuestion.b;
+    
+    if (parseInt(captchaInput) === answer) {
+      setIsCaptchaOpen(false);
+      await processReward();
+    } else {
+      toast({ variant: 'destructive', title: 'Invalid Captcha', description: 'Please try again.' });
+      generateCaptcha();
+    }
+  };
+
+  const processReward = async () => {
     const multiplier = calculatePayout(score);
     const payout = Math.floor(betAmount * multiplier);
 
@@ -120,13 +170,8 @@ export default function CandyCrushPage() {
       });
 
       toast({ 
-        title: 'Session Ended!', 
-        description: `You scored ${score} and won ₹${payout.toFixed(2)}!` 
-      });
-    } else {
-      toast({ 
-        title: 'Session Ended', 
-        description: `Score: ${score}. Try again to earn rewards!` 
+        title: 'Verification Successful!', 
+        description: `You scored ${score} and earned ₹${payout.toFixed(2)}!` 
       });
     }
   };
@@ -231,6 +276,12 @@ export default function CandyCrushPage() {
     }
   };
 
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const currentMultiplier = calculatePayout(score);
 
   return (
@@ -262,7 +313,7 @@ export default function CandyCrushPage() {
         <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
           <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Time Left</p>
           <p className={cn("text-2xl font-black", timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-blue-400")}>
-            {timeLeft}s
+            {formatTime(timeLeft)}
           </p>
           <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
         </div>
@@ -295,15 +346,23 @@ export default function CandyCrushPage() {
           <div className="absolute inset-0 bg-black/60 flex items-center justify-center z-20 backdrop-blur-[2px] rounded-[1.5rem]">
             {gameState === 'idle' ? (
               <p className="text-lg font-bold text-white uppercase tracking-widest text-center px-8">
-                Place a bet to start 60s session
+                Place a bet to start 5m session
               </p>
             ) : (
               <div className="text-center">
-                <p className="text-3xl font-black text-yellow-300 uppercase italic mb-2">Game Over</p>
+                <p className="text-3xl font-black text-yellow-300 uppercase italic mb-2">Session Ended</p>
                 <p className="text-sm font-bold text-white/60 mb-4">Final Score: {score}</p>
                 <p className={cn("text-lg font-black", currentMultiplier > 0 ? "text-green-500" : "text-red-500")}>
-                  {currentMultiplier > 0 ? `Payout: ${currentMultiplier}x` : "No Reward"}
+                  {currentMultiplier > 0 ? `Potential Reward: ${currentMultiplier}x` : "No Reward"}
                 </p>
+                {currentMultiplier > 0 && (
+                  <Button 
+                    onClick={() => setIsCaptchaOpen(true)}
+                    className="mt-4 bg-primary hover:bg-primary/90 text-white font-bold"
+                  >
+                    Complete Verification
+                  </Button>
+                )}
               </div>
             )}
           </div>
@@ -362,6 +421,44 @@ export default function CandyCrushPage() {
            </div>
         </div>
       </div>
+
+      <Dialog open={isCaptchaOpen} onOpenChange={setIsCaptchaOpen}>
+        <DialogContent className="bg-[#111] border-white/10 text-white rounded-3xl max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold uppercase tracking-tight text-primary flex items-center gap-2">
+              <ShieldCheck className="w-6 h-6" />
+              Human Verification
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-6 space-y-6">
+            <div className="bg-white/5 p-6 rounded-2xl text-center border border-white/5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 mb-4">Solve to claim rewards</p>
+              <div className="text-4xl font-black tracking-widest text-yellow-400">
+                {captchaQuestion.a} + {captchaQuestion.b} = ?
+              </div>
+            </div>
+            
+            <form onSubmit={handleCaptchaSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="captcha" className="text-[10px] font-bold uppercase tracking-widest opacity-60">Your Answer</Label>
+                <Input
+                  id="captcha"
+                  type="number"
+                  placeholder="Enter the sum..."
+                  className="bg-white/5 border-white/10 h-14 text-center text-xl font-bold"
+                  value={captchaInput}
+                  onChange={(e) => setCaptchaInput(e.target.value)}
+                  autoFocus
+                  required
+                />
+              </div>
+              <Button type="submit" className="w-full h-14 bg-primary font-black uppercase text-lg rounded-xl">
+                Verify & Claim
+              </Button>
+            </form>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
