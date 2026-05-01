@@ -1,10 +1,11 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, History } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -164,12 +165,6 @@ export default function DashboardPage() {
     <div className="container mx-auto px-4 py-8 max-w-lg space-y-8 pb-24">
       <header className="px-1 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-white tracking-tight uppercase">Wallet</h1>
-        <Link href="/history">
-          <Button variant="ghost" size="sm" className="text-primary font-bold uppercase text-[10px] tracking-widest bg-primary/5 border border-primary/10 rounded-full px-4">
-            <History className="w-3 h-3 mr-1.5" />
-            History
-          </Button>
-        </Link>
       </header>
       
       <Card className="bg-primary text-primary-foreground border-none rounded-[2rem] shadow-2xl overflow-hidden relative">

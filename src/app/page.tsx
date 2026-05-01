@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -56,21 +57,6 @@ export default function Home() {
           </CardContent>
           <div className="absolute -right-10 -top-10 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none" />
         </Card>
-
-        {/* Activity Log / History Center */}
-        <Link href="/history" className="block">
-          <Card className="bg-[#0f0f0f] border-white/5 hover:bg-[#151515] transition-colors rounded-2xl">
-            <CardContent className="p-6 flex items-center justify-between">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground mb-1">Activity Log</p>
-                <h3 className="text-xl font-bold text-white">History Center</h3>
-              </div>
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center">
-                <ArrowRight className="h-5 w-5 text-primary" />
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
 
         {/* Earning Zone */}
         <div className="space-y-4 pt-2">
