@@ -3,14 +3,20 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Global rule for prototype stability: Allow all authenticated users to read and write.
-    // This ensures that the client-side game settlement engine and history center
-    // can function correctly without permission errors.
+    /**
+     * PROTOTYPE STABILITY RULE:
+     * This rule allows any authenticated user to read and write to any document.
+     * This is required because:
+     * 1. The client-side 'GameEngine' must settle rounds and update balances for other users.
+     * 2. Queries (list operations) on collections like 'transactions' often fail with owner-only 
+     *    rules if the filters and indices aren't perfectly aligned.
+     * 3. Real-time listeners on game results need global access.
+     */
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
 
-    // Specific match blocks for documentation and future refinement
+    // Specific match blocks for documentation
     match /users/{userId} {
       allow read, create, update: if request.auth != null && request.auth.uid == userId;
     }
