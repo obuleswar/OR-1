@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, serverTimestamp, addDoc, collection, query, where, limit } from 'firebase/firestore';
+import { doc, increment, serverTimestamp, addDoc, collection, query, where, limit, getDocs, Timestamp } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
 import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon, Lock, ShieldAlert, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,7 @@ const MIN_WITHDRAWAL = 100;
 const MAX_WITHDRAWAL = 5000;
 const MIN_DEPOSIT = 50;
 const MAX_DEPOSIT = 2500;
+const DAILY_WITHDRAWAL_LIMIT = 2;
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -45,6 +46,7 @@ export default function DashboardPage() {
   const [bankIfsc, setBankIfsc] = useState('');
   const [bankName, setBankName] = useState('');
   const [withdrawEmail, setWithdrawEmail] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
 
   const userDocRef = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
@@ -156,7 +158,6 @@ export default function DashboardPage() {
     }
 
     if (userDocRef && db) {
-      // Save to 'deposits' collection for manual verification
       await addDoc(collection(db, 'deposits'), {
         userId: user!.uid,
         status: 'pending',
@@ -179,6 +180,8 @@ export default function DashboardPage() {
 
   const handleWithdraw = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isWithdrawing) return;
+
     const amount = parseFloat(withdrawAmount);
     const currentBalance = profile?.balance || 0;
     const remainingWager = profile?.requiredWager || 0;
@@ -213,40 +216,69 @@ export default function DashboardPage() {
       return;
     }
 
-    let details = "";
-    if (withdrawMethod === 'upi') {
-      if (!upiId) return;
-      details = `UPI: ${upiId}`;
-    } else {
-      if (!bankAccount || !bankIfsc || !bankName) return;
-      details = `Bank: ${bankName}, Acc: ${bankAccount}, IFSC: ${bankIfsc}`;
-    }
+    setIsWithdrawing(true);
 
-    if (userDocRef && db) {
-      // Decrement balance immediately to hold funds
-      updateDocumentNonBlocking(userDocRef, {
-        balance: increment(-amount),
-        lastWithdrawAt: serverTimestamp(),
-      });
+    try {
+      // Check daily limit
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
 
-      // Log to dedicated 'withdrawals' collection for admin approval
-      await addDoc(collection(db, 'withdrawals'), {
-        userId: user!.uid,
-        amount: amount,
-        method: withdrawMethod,
-        details: details,
-        email: withdrawEmail,
-        status: 'pending',
-        timestamp: serverTimestamp()
-      });
+      const q = query(
+        collection(db, 'withdrawals'),
+        where('userId', '==', user!.uid),
+        where('timestamp', '>=', Timestamp.fromDate(startOfToday))
+      );
+      const querySnapshot = await getDocs(q);
 
-      toast({
-        title: 'Withdrawal processing',
-        description: `₹${amount.toFixed(2)} has been requested for withdrawal.`,
-      });
-      setIsWithdrawOpen(false);
-      setWithdrawAmount('');
-      setWithdrawEmail('');
+      if (querySnapshot.size >= DAILY_WITHDRAWAL_LIMIT) {
+        toast({ 
+          variant: 'destructive', 
+          title: 'Daily Limit Reached', 
+          description: `You can only make ${DAILY_WITHDRAWAL_LIMIT} withdrawal requests per day.` 
+        });
+        setIsWithdrawing(false);
+        return;
+      }
+
+      let details = "";
+      if (withdrawMethod === 'upi') {
+        if (!upiId) throw new Error('UPI ID is required');
+        details = `UPI: ${upiId}`;
+      } else {
+        if (!bankAccount || !bankIfsc || !bankName) throw new Error('Bank details are incomplete');
+        details = `Bank: ${bankName}, Acc: ${bankAccount}, IFSC: ${bankIfsc}`;
+      }
+
+      if (userDocRef && db) {
+        // Decrement balance immediately to hold funds
+        updateDocumentNonBlocking(userDocRef, {
+          balance: increment(-amount),
+          lastWithdrawAt: serverTimestamp(),
+        });
+
+        // Log to dedicated 'withdrawals' collection for admin approval
+        await addDoc(collection(db, 'withdrawals'), {
+          userId: user!.uid,
+          amount: amount,
+          method: withdrawMethod,
+          details: details,
+          email: withdrawEmail,
+          status: 'pending',
+          timestamp: serverTimestamp()
+        });
+
+        toast({
+          title: 'Withdrawal processing',
+          description: `₹${amount.toFixed(2)} has been requested for withdrawal.`,
+        });
+        setIsWithdrawOpen(false);
+        setWithdrawAmount('');
+        setWithdrawEmail('');
+      }
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Withdrawal Failed', description: error.message });
+    } finally {
+      setIsWithdrawing(false);
     }
   };
 
@@ -310,7 +342,6 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Activity Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -447,7 +478,7 @@ export default function DashboardPage() {
             <form onSubmit={handleWithdraw} className="space-y-4">
               <div className="bg-white/5 p-3 rounded-xl border border-white/5 mb-2">
                 <p className="text-[10px] font-bold text-white/40 uppercase text-center">
-                  Limits: ₹{MIN_WITHDRAWAL} - ₹{MAX_WITHDRAWAL}
+                  Limits: ₹{MIN_WITHDRAWAL} - ₹{MAX_WITHDRAWAL} | Max 2 per day
                 </p>
               </div>
               <Input
@@ -488,7 +519,9 @@ export default function DashboardPage() {
                 onChange={(e) => setWithdrawEmail(e.target.value)}
                 required
               />
-              <Button type="submit" className="w-full bg-white text-black font-bold uppercase h-12 rounded-xl">Confirm Withdrawal</Button>
+              <Button type="submit" disabled={isWithdrawing} className="w-full bg-white text-black font-bold uppercase h-12 rounded-xl">
+                {isWithdrawing ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirm Withdrawal"}
+              </Button>
             </form>
           )}
         </DialogContent>
