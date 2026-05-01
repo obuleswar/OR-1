@@ -11,6 +11,7 @@
         "email": { "type": "string" },
         "phoneNumber": { "type": "string" },
         "balance": { "type": "number" },
+        "requiredWager": { "type": "number", "description": "Remaining amount user must bet before withdrawing." },
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },

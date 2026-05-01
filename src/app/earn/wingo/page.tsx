@@ -94,9 +94,12 @@ export default function WingoPage() {
 
     setIsPlacingBet(true);
     
-    // Non-blocking write for performance and to leverage SDK auth context
+    // Non-blocking write
+    // Update balance and REDUCE required wager
+    const requiredWagerReduction = Math.max(0, (profile?.requiredWager || 0) - selectedAmount);
     updateDocumentNonBlocking(userDocRef, {
-      balance: increment(-selectedAmount)
+      balance: increment(-selectedAmount),
+      requiredWager: increment(-selectedAmount < - (profile?.requiredWager || 0) ? -(profile?.requiredWager || 0) : -selectedAmount)
     });
 
     addDocumentNonBlocking(collection(db, 'bets'), {
@@ -117,7 +120,7 @@ export default function WingoPage() {
       timestamp: serverTimestamp()
     });
 
-    toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}` });
+    toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}. Wage requirement updated.` });
     setIsBettingOpen(false);
     setIsPlacingBet(false);
   };

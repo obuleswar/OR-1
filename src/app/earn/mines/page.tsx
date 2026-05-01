@@ -56,8 +56,13 @@ export default function MinesPage() {
       createdAt: new Date().toISOString()
     };
 
+    // Update balance and REDUCE required wager
+    const currentWager = profile?.requiredWager || 0;
+    const reduction = Math.min(currentWager, betAmount);
+
     updateDocumentNonBlocking(userDocRef, {
-      balance: increment(-betAmount)
+      balance: increment(-betAmount),
+      requiredWager: increment(-reduction)
     });
 
     addDocumentNonBlocking(collection(db, 'transactions'), {
@@ -68,8 +73,6 @@ export default function MinesPage() {
       timestamp: serverTimestamp()
     });
 
-    // In a prototype, we can keep the sensitive game state in local state
-    // and sync to firestore for record keeping.
     setActiveGame(gameData);
     setGameStatus('active');
     

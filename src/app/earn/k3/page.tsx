@@ -128,9 +128,13 @@ export default function K3LotrePage() {
 
     setIsPlacingBet(true);
     
-    // Non-blocking write
+    // Update balance and REDUCE required wager
+    const currentWager = profile?.requiredWager || 0;
+    const reduction = Math.min(currentWager, selectedChip);
+    
     updateDocumentNonBlocking(userDocRef, {
-      balance: increment(-selectedChip)
+      balance: increment(-selectedChip),
+      requiredWager: increment(-reduction)
     });
 
     addDocumentNonBlocking(collection(db, 'bets'), {
@@ -151,7 +155,7 @@ export default function K3LotrePage() {
       timestamp: serverTimestamp()
     });
 
-    toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}` });
+    toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}. Wage requirement updated.` });
     setIsPlacingBet(false);
   };
 
