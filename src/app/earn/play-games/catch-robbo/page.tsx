@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react';
 import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
 import { doc, collection, serverTimestamp, increment } from 'firebase/firestore';
-import { ChevronLeft, IndianRupee, Loader2, Zap, Trophy, ShieldCheck } from 'lucide-react';
+import { ChevronLeft, IndianRupee, Loader2, Zap, Trophy, ShieldCheck, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -126,8 +126,8 @@ export default function CatchRobboPage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body flex flex-col">
-      <div className="flex items-center justify-between mb-8 flex-shrink-0">
+    <div className="container mx-auto px-4 py-4 max-w-lg min-h-[calc(100vh-64px)] bg-[#050505] text-white pb-24 font-body flex flex-col">
+      <div className="flex items-center justify-between mb-6 flex-shrink-0">
         <Link href="/earn/play-games">
           <Button variant="ghost" size="icon" className="text-white">
             <ChevronLeft className="h-6 w-6" />
@@ -137,33 +137,44 @@ export default function CatchRobboPage() {
            <h1 className="text-2xl font-black tracking-tighter italic text-blue-500 uppercase">Catch Robbo</h1>
            <p className="text-[10px] text-white/40 font-bold tracking-widest uppercase">Free To Play</p>
         </div>
-        <div className="bg-[#1a1a1a] px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/5">
-           <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
-             <IndianRupee className="w-2.5 h-2.5 text-black" />
-           </div>
-           <span className="text-xs font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="bg-[#1a1a1a] px-3 py-1.5 rounded-full flex items-center gap-1.5 border border-white/5">
+             <div className="w-4 h-4 rounded-full bg-yellow-500 flex items-center justify-center">
+               <IndianRupee className="w-2.5 h-2.5 text-black" />
+             </div>
+             <span className="text-xs font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
+          </div>
+          {gameState === 'playing' && (
+            <div className={cn(
+              "flex items-center gap-1.5 px-3 py-1 rounded-full border bg-black/40",
+              timeLeft <= 10 ? "border-red-500 text-red-500 animate-pulse" : "border-blue-500/30 text-blue-400"
+            )}>
+              <Timer className="w-3 h-3" />
+              <span className="text-xs font-black font-mono">{formatTime(timeLeft)}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 mb-6 flex-shrink-0">
-        <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
-          <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Status</p>
-          <p className="text-sm font-black text-blue-400 uppercase tracking-widest">
-            {gameState === 'playing' ? 'Active' : 'Idle'}
-          </p>
-          <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
+      {gameState !== 'playing' && (
+        <div className="grid grid-cols-2 gap-4 mb-6 flex-shrink-0 animate-in fade-in slide-in-from-top-4">
+          <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+            <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Status</p>
+            <p className="text-sm font-black text-blue-400 uppercase tracking-widest">
+              {gameState === 'playing' ? 'Active' : 'Idle'}
+            </p>
+            <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
+          </div>
+          <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+            <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Session</p>
+            <p className="text-sm font-black text-blue-400 uppercase tracking-widest">5 Minutes</p>
+            <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
+          </div>
         </div>
-        <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
-          <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Time Left</p>
-          <p className={cn("text-2xl font-black", timeLeft <= 10 && timeLeft > 0 ? "text-red-500 animate-pulse" : "text-blue-400")}>
-            {formatTime(timeLeft)}
-          </p>
-          <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
-        </div>
-      </div>
+      )}
 
-      <div className="relative flex-1 min-h-[400px] mb-8">
-        <div className="w-full h-full bg-[#0a0a0a] rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden">
+      <div className="relative flex-1 mb-6">
+        <div className="absolute inset-0 bg-[#0a0a0a] rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden">
           {gameState === 'playing' ? (
             <iframe 
               src={GAME_URL}
@@ -174,8 +185,8 @@ export default function CatchRobboPage() {
             <div className="w-full h-full flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center">
               {gameState === 'idle' ? (
                 <>
-                  <div className="text-5xl mb-4">🤖</div>
-                  <p className="text-lg font-bold text-white uppercase tracking-widest">
+                  <div className="text-6xl mb-6 animate-bounce">🤖</div>
+                  <p className="text-lg font-bold text-white uppercase tracking-widest max-w-[200px]">
                     Complete 5m Session to Earn ₹{REWARD_AMOUNT.toFixed(2)}
                   </p>
                 </>
@@ -196,22 +207,24 @@ export default function CatchRobboPage() {
         </div>
       </div>
 
-      <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-6 flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reward Info</p>
-          <div className="bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
-            <span className="text-[10px] font-black text-primary uppercase">Fixed ₹{REWARD_AMOUNT.toFixed(2)}</span>
+      {gameState !== 'playing' && (
+        <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-6 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4">
+          <div className="flex items-center justify-between">
+            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reward Info</p>
+            <div className="bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
+              <span className="text-[10px] font-black text-primary uppercase">Fixed ₹{REWARD_AMOUNT.toFixed(2)}</span>
+            </div>
           </div>
-        </div>
 
-        <Button 
-          onClick={handleStartGame}
-          disabled={isProcessing || gameState === 'playing'}
-          className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black text-lg rounded-2xl shadow-lg"
-        >
-          {isProcessing ? <Loader2 className="animate-spin" /> : gameState === 'playing' ? "SESSION IN PROGRESS" : "START SESSION"}
-        </Button>
-      </div>
+          <Button 
+            onClick={handleStartGame}
+            disabled={isProcessing}
+            className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black text-lg rounded-2xl shadow-lg"
+          >
+            {isProcessing ? <Loader2 className="animate-spin" /> : "START SESSION"}
+          </Button>
+        </div>
+      )}
 
       <Dialog open={isCaptchaOpen} onOpenChange={setIsCaptchaOpen}>
         <DialogContent className="bg-[#111] border-white/10 text-white rounded-3xl max-w-[400px]">
