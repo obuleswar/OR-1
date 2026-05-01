@@ -11,15 +11,13 @@
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "totalEarning": { "type": "number" },
-        "lastDepositAt": { "type": "string", "format": "date-time" },
-        "lastWithdrawAt": { "type": "string", "format": "date-time" }
+        "totalEarning": { "type": "number" }
       }
     },
     "Transaction": {
       "title": "Transaction",
       "type": "object",
-      "description": "Record of a financial movement (bet, win, deposit, etc).",
+      "description": "Record of a financial movement.",
       "properties": {
         "userId": { "type": "string" },
         "type": { "type": "string", "enum": ["deposit", "withdraw", "bet", "win", "bonus", "referral"] },
@@ -31,7 +29,7 @@
     "Bet": {
       "title": "Bet",
       "type": "object",
-      "description": "A user's wager on a game round.",
+      "description": "A user's wager on a game.",
       "properties": {
         "userId": { "type": "string" },
         "period": { "type": "string" },
@@ -39,18 +37,16 @@
         "betType": { "type": "string" },
         "amount": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "won", "lost"] },
-        "payout": { "type": "number" },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "payout": { "type": "number" }
       }
     },
     "Referral": {
       "title": "Referral",
       "type": "object",
-      "description": "Bonus tracking for successful invites.",
+      "description": "Referral tracking record.",
       "properties": {
-        "referrerUid": { "type": "string" },
-        "referredUid": { "type": "string" },
-        "amount": { "type": "number" },
+        "userId": { "type": "string" },
+        "status": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" }
       }
     }
@@ -68,27 +64,18 @@
     },
     "/transactions/{transactionId}": {
       "schema": "Transaction",
-      "description": "Global log of all financial activities."
+      "description": "User financial history."
     },
     "/bets/{betId}": {
       "schema": "Bet",
-      "description": "Individual wagers placed by users."
+      "description": "Individual wagers."
     },
     "/referrals/{referralId}": {
       "schema": "Referral",
-      "description": "Tracking of bonuses earned from invites."
+      "description": "Referral records."
     },
-    "/wingo_results/{period}": {
-      "description": "Historical results for Wingo game rounds."
-    },
-    "/k3_results/{period}": {
-      "description": "Historical results for K3 game rounds."
-    },
-    "/dragon_tiger_results/{period}": {
-      "description": "Historical results for Dragon Tiger game rounds."
-    },
-    "/mines_games/{gameId}": {
-      "description": "Active and finished Mines game sessions."
+    "/system/{document=**}": {
+      "description": "System level configurations."
     }
   }
 }
