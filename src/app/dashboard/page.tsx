@@ -71,8 +71,20 @@ export default function DashboardPage() {
     );
   }, [db, user?.uid]);
 
+  // Withdrawals query (to show pending ones)
+  const withdrawalsQuery = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return query(
+      collection(db, 'withdrawals'),
+      where('userId', '==', user.uid),
+      where('status', '==', 'pending'),
+      limit(10)
+    );
+  }, [db, user?.uid]);
+
   const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
   const { data: pendingDeposits, isLoading: isDepositsLoading } = useCollection(depositsQuery);
+  const { data: pendingWithdrawals, isLoading: isWithdrawalsLoading } = useCollection(withdrawalsQuery);
 
   const sortedActivities = useMemo(() => {
     const txs = transactions || [];
@@ -81,13 +93,18 @@ export default function DashboardPage() {
       type: 'deposit',
       description: `Deposit Request (UTR: ${d.utr})`
     }));
+    const withs = (pendingWithdrawals || []).map(w => ({
+      ...w,
+      type: 'withdraw',
+      description: `Withdrawal Request (${w.method.toUpperCase()})`
+    }));
     
-    return [...txs, ...deps].sort((a, b) => {
+    return [...txs, ...deps, ...withs].sort((a, b) => {
       const timeA = a.timestamp?.seconds || 0;
       const timeB = b.timestamp?.seconds || 0;
       return timeB - timeA;
     });
-  }, [transactions, pendingDeposits]);
+  }, [transactions, pendingDeposits, pendingWithdrawals]);
 
   const getIcon = (type: string, status?: string) => {
     if (status === 'pending') return <Clock className="w-5 h-5 text-yellow-500 animate-pulse" />;
@@ -183,18 +200,20 @@ export default function DashboardPage() {
     }
 
     if (userDocRef && db) {
+      // Decrement balance immediately to hold funds
       updateDocumentNonBlocking(userDocRef, {
         balance: increment(-amount),
         lastWithdrawAt: serverTimestamp(),
       });
 
-      // Log transaction
-      await addDoc(collection(db, 'transactions'), {
+      // Log to dedicated 'withdrawals' collection for admin approval
+      await addDoc(collection(db, 'withdrawals'), {
         userId: user!.uid,
-        type: 'withdraw',
-        status: 'pending',
         amount: amount,
-        description: `Withdrawal Request to ${withdrawMethod.toUpperCase()} (${details})`,
+        method: withdrawMethod,
+        details: details,
+        email: withdrawEmail,
+        status: 'pending',
         timestamp: serverTimestamp()
       });
 
@@ -278,7 +297,7 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-3">
-          {(isTransactionsLoading || isDepositsLoading) ? (
+          {(isTransactionsLoading || isDepositsLoading || isWithdrawalsLoading) ? (
             <div className="text-center py-10 text-white/20 text-xs">Loading activity...</div>
           ) : sortedActivities.length === 0 ? (
             <div className="text-center py-10 bg-white/5 rounded-3xl border border-white/5">

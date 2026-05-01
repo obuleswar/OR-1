@@ -48,6 +48,20 @@
         "timestamp": { "type": "string", "format": "date-time" }
       }
     },
+    "Withdrawal": {
+      "title": "Withdrawal",
+      "type": "object",
+      "description": "A manual withdrawal request pending admin approval.",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string", "enum": ["upi", "bank"] },
+        "details": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
     "Bet": {
       "title": "Bet",
       "type": "object",
@@ -110,6 +124,10 @@
     "/deposits/{depositId}": {
       "schema": "Deposit",
       "description": "Pending manual deposit requests for admin verification."
+    },
+    "/withdrawals/{withdrawalId}": {
+      "schema": "Withdrawal",
+      "description": "Pending manual withdrawal requests for admin verification."
     },
     "/bets/{betId}": {
       "schema": "Bet",
