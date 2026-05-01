@@ -10,6 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { useState, useMemo } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { isToday } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 export default function Home() {
   const { user, isUserLoading } = useUser();
