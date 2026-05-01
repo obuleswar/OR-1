@@ -11,6 +11,8 @@ service cloud.firestore {
      *
      * This global rule resolves "Missing or insufficient permissions" errors
      * when listing collections like /transactions or /bets.
+     * 
+     * Deployment ID: fix_history_permissive_v2
      */
     
     match /{document=**} {
