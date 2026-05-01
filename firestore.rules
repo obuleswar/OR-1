@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -11,7 +12,7 @@ service cloud.firestore {
      * multiple users. Strict document-level ownership rules often block 
      * these operations or cause listing errors in the History Center.
      *
-     * Deployment ID: global_auth_permissive_final_v1
+     * Deployment ID: global_auth_permissive_final_v2
      */
     
     match /{document=**} {
