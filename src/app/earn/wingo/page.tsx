@@ -3,13 +3,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
-import { IndianRupee, Zap, ChevronLeft, Loader2, History, Trophy } from 'lucide-react';
+import { doc, collection, query, orderBy, limit, writeBatch, serverTimestamp, increment, addDoc } from 'firebase/firestore';
+import { IndianRupee, Zap, ChevronLeft, Loader2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { placeBet } from './actions';
 import {
   Dialog,
   DialogContent,
@@ -83,19 +82,55 @@ export default function WingoPage() {
   };
 
   const onConfirmBet = async () => {
-    if (!user) {
+    if (!user || !db) {
       toast({ variant: 'destructive', title: 'Sign In Required' });
       return;
     }
+    
+    if ((profile?.balance || 0) < selectedAmount) {
+      toast({ variant: 'destructive', title: 'Insufficient balance' });
+      return;
+    }
+
     setIsPlacingBet(true);
-    const res = await placeBet(user.uid, currentPeriod, betType, selectedAmount);
-    if (res.success) {
+    
+    try {
+      const batch = writeBatch(db);
+      const betRef = doc(collection(db, 'bets'));
+      const txnRef = doc(collection(db, 'transactions'));
+      const userRef = doc(db, 'users', user.uid);
+
+      batch.set(betRef, {
+        userId: user.uid,
+        period: currentPeriod,
+        gameType: 'wingo',
+        betType: betType,
+        amount: selectedAmount,
+        status: 'pending',
+        createdAt: serverTimestamp()
+      });
+
+      batch.update(userRef, {
+        balance: increment(-selectedAmount)
+      });
+
+      batch.set(txnRef, {
+        userId: user.uid,
+        type: 'bet',
+        amount: selectedAmount,
+        description: `Bet on ${betType} for period ${currentPeriod}`,
+        timestamp: serverTimestamp()
+      });
+
+      await batch.commit();
+      
       toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}` });
       setIsBettingOpen(false);
-    } else {
-      toast({ variant: 'destructive', title: 'Error', description: res.error });
+    } catch (error: any) {
+      toast({ variant: 'destructive', title: 'Error', description: error.message });
+    } finally {
+      setIsPlacingBet(false);
     }
-    setIsPlacingBet(false);
   };
 
   const getNumberColor = (num: number) => {

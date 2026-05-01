@@ -11,7 +11,7 @@ service cloud.firestore {
      * background game settlement engines that need to update data for 
      * multiple users across various collections.
      *
-     * Deployment ID: global_auth_permissive_v4_stable_final
+     * Deployment ID: global_auth_permissive_v5_client_sync
      */
     
     match /{document=**} {
