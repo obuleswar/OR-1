@@ -125,6 +125,39 @@ export default function CandyCrushPage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  if (gameState === 'playing') {
+    return (
+      <div className="fixed inset-0 z-[9999] bg-black flex flex-col animate-in fade-in duration-500">
+        <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-[10000] pointer-events-none">
+          <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-2xl border border-white/10 flex items-center gap-3 pointer-events-auto shadow-2xl">
+            <Timer className={cn("w-5 h-5", timeLeft <= 10 ? "text-red-500 animate-pulse" : "text-blue-400")} />
+            <span className={cn("text-2xl font-black font-mono", timeLeft <= 10 ? "text-red-500" : "text-blue-400")}>
+              {formatTime(timeLeft)}
+            </span>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => {
+                if (window.confirm("Exit game? Your current session progress will be lost.")) {
+                    setGameState('idle');
+                    setTimeLeft(0);
+                }
+            }} 
+            className="bg-black/60 backdrop-blur-md h-12 w-12 rounded-2xl border border-white/10 text-white/40 hover:text-white pointer-events-auto shadow-2xl"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </Button>
+        </div>
+        <iframe 
+          src={GAME_URL}
+          className="w-full h-full border-none"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-[calc(100vh-64px)] bg-[#050505] text-white pb-24 font-body flex flex-col">
       <div className="flex items-center justify-between mb-6 flex-shrink-0">
@@ -144,87 +177,66 @@ export default function CandyCrushPage() {
             </div>
             <span className="text-xs font-bold">₹{Number(profile?.balance || 0).toFixed(2)}</span>
           </div>
-          {gameState === 'playing' && (
-            <div className={cn(
-              "flex items-center gap-1.5 px-3 py-1 rounded-full border bg-black/40",
-              timeLeft <= 10 ? "border-red-500 text-red-500 animate-pulse" : "border-blue-500/30 text-blue-400"
-            )}>
-              <Timer className="w-3 h-3" />
-              <span className="text-xs font-black font-mono">{formatTime(timeLeft)}</span>
-            </div>
-          )}
         </div>
       </div>
 
-      {gameState !== 'playing' && (
-        <div className="grid grid-cols-2 gap-4 mb-6 flex-shrink-0 animate-in fade-in slide-in-from-top-4">
-          <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
-            <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Status</p>
-            <p className="text-sm font-black text-pink-400 uppercase tracking-widest">
-              {gameState === 'playing' ? 'Active' : 'Idle'}
-            </p>
-            <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-pink-500/10" />
-          </div>
-          <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
-            <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Session</p>
-            <p className="text-sm font-black text-blue-400 uppercase tracking-widest">5 Minutes</p>
-            <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
-          </div>
+      <div className="grid grid-cols-2 gap-4 mb-6 flex-shrink-0 animate-in fade-in slide-in-from-top-4">
+        <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+          <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Status</p>
+          <p className="text-sm font-black text-pink-400 uppercase tracking-widest">
+            {gameState === 'playing' ? 'Active' : 'Idle'}
+          </p>
+          <Zap className="absolute -right-2 -bottom-2 w-12 h-12 text-pink-500/10" />
         </div>
-      )}
+        <div className="bg-[#111] p-4 rounded-3xl border border-white/5 flex flex-col items-center justify-center relative overflow-hidden">
+          <p className="text-[10px] font-bold text-white/40 uppercase mb-1">Session</p>
+          <p className="text-sm font-black text-blue-400 uppercase tracking-widest">5 Minutes</p>
+          <Trophy className="absolute -right-2 -bottom-2 w-12 h-12 text-blue-500/10" />
+        </div>
+      </div>
 
       <div className="relative flex-1 mb-6">
         <div className="absolute inset-0 bg-[#0a0a0a] rounded-[1.5rem] border border-white/10 shadow-2xl overflow-hidden">
-          {gameState === 'playing' ? (
-            <iframe 
-              src={GAME_URL}
-              className="w-full h-full border-none"
-              allowFullScreen
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center">
-              {gameState === 'idle' ? (
-                <>
-                  <div className="text-6xl mb-6 animate-bounce">🍬</div>
-                  <p className="text-lg font-bold text-white uppercase tracking-widest max-w-[200px]">
-                    Complete 5m Session to Earn ₹{REWARD_AMOUNT.toFixed(2)}
-                  </p>
-                </>
-              ) : (
-                <div className="text-center animate-in zoom-in duration-300">
-                  <p className="text-3xl font-black text-pink-500 uppercase italic mb-2">Session Ended</p>
-                  <p className="text-sm font-bold text-white/60 mb-6 uppercase tracking-widest">5 Minute Playtime Completed</p>
-                  <Button 
-                    onClick={() => setIsCaptchaOpen(true)}
-                    className="bg-primary hover:bg-primary/90 text-white font-black uppercase px-12 h-14 rounded-2xl shadow-lg"
-                  >
-                    Verify & Claim Reward
-                  </Button>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="w-full h-full flex flex-col items-center justify-center bg-black/60 backdrop-blur-[2px] p-8 text-center">
+            {gameState === 'idle' ? (
+              <>
+                <div className="text-6xl mb-6 animate-bounce">🍬</div>
+                <p className="text-lg font-bold text-white uppercase tracking-widest max-w-[200px]">
+                  Complete 5m Session to Earn ₹{REWARD_AMOUNT.toFixed(2)}
+                </p>
+              </>
+            ) : (
+              <div className="text-center animate-in zoom-in duration-300">
+                <p className="text-3xl font-black text-pink-500 uppercase italic mb-2">Session Ended</p>
+                <p className="text-sm font-bold text-white/60 mb-6 uppercase tracking-widest">5 Minute Playtime Completed</p>
+                <Button 
+                  onClick={() => setIsCaptchaOpen(true)}
+                  className="bg-primary hover:bg-primary/90 text-white font-black uppercase px-12 h-14 rounded-2xl shadow-lg"
+                >
+                  Verify & Claim Reward
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {gameState !== 'playing' && (
-        <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-6 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4">
-          <div className="flex items-center justify-between">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reward Info</p>
-            <div className="bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
-              <span className="text-[10px] font-black text-primary uppercase">Fixed ₹{REWARD_AMOUNT.toFixed(2)}</span>
-            </div>
+      <div className="bg-[#111] p-6 rounded-[2rem] border border-white/5 space-y-6 flex-shrink-0 animate-in fade-in slide-in-from-bottom-4">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-white/40">Reward Info</p>
+          <div className="bg-primary/10 border border-primary/20 px-3 py-0.5 rounded-full">
+            <span className="text-[10px] font-black text-primary uppercase">Fixed ₹{REWARD_AMOUNT.toFixed(2)}</span>
           </div>
-
-          <Button 
-            onClick={handleStartGame}
-            disabled={isProcessing}
-            className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black text-lg rounded-2xl shadow-lg"
-          >
-            {isProcessing ? <Loader2 className="animate-spin" /> : "START SESSION"}
-          </Button>
         </div>
-      )}
+
+        <Button 
+          onClick={handleStartGame}
+          disabled={isProcessing}
+          className="w-full h-16 bg-primary hover:bg-primary/90 text-white font-black text-lg rounded-2xl shadow-lg"
+        >
+          {isProcessing ? <Loader2 className="animate-spin" /> : "START SESSION"}
+        </Button>
+      </div>
 
       <Dialog open={isCaptchaOpen} onOpenChange={setIsCaptchaOpen}>
         <DialogContent className="bg-[#111] border-white/10 text-white rounded-3xl max-w-[400px]">
