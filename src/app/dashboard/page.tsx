@@ -21,7 +21,7 @@ import Link from 'next/link';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
-const ADMIN_UPI_ID = "orwallet@okaxis";
+const ADMIN_UPI_ID = "mine.pe@ptaxis";
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
