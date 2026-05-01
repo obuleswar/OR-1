@@ -22,6 +22,8 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 
 const ADMIN_UPI_ID = "mine.pe@ptaxis";
+const MIN_WITHDRAWAL = 100;
+const MAX_WITHDRAWAL = 5000;
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -182,6 +184,16 @@ export default function DashboardPage() {
 
     if (!withdrawAmount || isNaN(amount) || amount <= 0) {
       toast({ variant: 'destructive', title: 'Invalid amount' });
+      return;
+    }
+
+    if (amount < MIN_WITHDRAWAL) {
+      toast({ variant: 'destructive', title: 'Minimum limit', description: `Minimum withdrawal amount is ₹${MIN_WITHDRAWAL}.` });
+      return;
+    }
+
+    if (amount > MAX_WITHDRAWAL) {
+      toast({ variant: 'destructive', title: 'Maximum limit', description: `Maximum withdrawal amount is ₹${MAX_WITHDRAWAL}.` });
       return;
     }
 
@@ -417,6 +429,11 @@ export default function DashboardPage() {
             </div>
           ) : (
             <form onSubmit={handleWithdraw} className="space-y-4">
+              <div className="bg-white/5 p-3 rounded-xl border border-white/5 mb-2">
+                <p className="text-[10px] font-bold text-white/40 uppercase text-center">
+                  Limits: ₹{MIN_WITHDRAWAL} - ₹{MAX_WITHDRAWAL}
+                </p>
+              </div>
               <Input
                 type="number"
                 placeholder="Amount (INR)"
