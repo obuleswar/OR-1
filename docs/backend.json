@@ -40,6 +40,17 @@
         "payout": { "type": "number" },
         "createdAt": { "type": "string", "format": "date-time" }
       }
+    },
+    "Referral": {
+      "title": "Referral",
+      "type": "object",
+      "description": "Bonus tracking for successful invites.",
+      "properties": {
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "amount": { "type": "number" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "auth": {
@@ -61,6 +72,10 @@
       "schema": "Bet",
       "description": "Individual wagers placed by users."
     },
+    "/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Tracking of bonuses earned from invites."
+    },
     "/wingo_results/{period}": {
       "description": "Historical results for Wingo game rounds."
     },
@@ -69,6 +84,9 @@
     },
     "/dragon_tiger_results/{period}": {
       "description": "Historical results for Dragon Tiger game rounds."
+    },
+    "/mines_games/{gameId}": {
+      "description": "Active and finished Mines game sessions."
     }
   }
 }
