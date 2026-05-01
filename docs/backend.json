@@ -11,7 +11,9 @@
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "totalEarning": { "type": "number" }
+        "totalEarning": { "type": "number" },
+        "lastDepositAt": { "type": "string", "format": "date-time" },
+        "lastWithdrawAt": { "type": "string", "format": "date-time" }
       }
     },
     "Transaction": {

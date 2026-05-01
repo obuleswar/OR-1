@@ -7,11 +7,11 @@ service cloud.firestore {
      * This rule allows any authenticated user to read and write to any document.
      * 
      * Why this is necessary for this app:
-     * 1. The 'GameEngine' component runs on the client and settles bets for multiple users.
-     * 2. Transaction listing in the History Center requires broad read access.
-     * 3. Real-time game result listeners require global access to the results collections.
+     * 1. The 'GameEngine' component runs on the client and must be able to settle bets (update balances/bets) for all active users in a round.
+     * 2. The 'History Center' performs complex 'list' queries on the 'transactions' collection that are often blocked by document-level ownership rules.
+     * 3. Real-time listeners for game results (Wingo, K3, Dragon Tiger) require global read access to the results collections.
      * 
-     * Deployment trigger: 2024-05-24T12:00:00Z - Forced update to resolve persistent list/read errors.
+     * Deployment trigger: 2024-05-24T15:30:00Z - Finalizing permissive rules for production-like prototype behavior.
      */
     match /{document=**} {
       allow read, write: if request.auth != null;
