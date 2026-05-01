@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -24,6 +23,8 @@ import { cn } from '@/lib/utils';
 const ADMIN_UPI_ID = "mine.pe@ptaxis";
 const MIN_WITHDRAWAL = 100;
 const MAX_WITHDRAWAL = 5000;
+const MIN_DEPOSIT = 50;
+const MAX_DEPOSIT = 2500;
 
 export default function DashboardPage() {
   const { user, isUserLoading } = useUser();
@@ -134,8 +135,18 @@ export default function DashboardPage() {
     e.preventDefault();
     const amount = parseFloat(depositAmount);
     
-    if (!depositAmount || isNaN(amount) || amount <= 0) {
+    if (!depositAmount || isNaN(amount)) {
       toast({ variant: 'destructive', title: 'Invalid amount' });
+      return;
+    }
+
+    if (amount < MIN_DEPOSIT) {
+      toast({ variant: 'destructive', title: 'Minimum Limit', description: `Minimum deposit amount is ₹${MIN_DEPOSIT}.` });
+      return;
+    }
+
+    if (amount > MAX_DEPOSIT) {
+      toast({ variant: 'destructive', title: 'Maximum Limit', description: `Maximum deposit amount is ₹${MAX_DEPOSIT}.` });
       return;
     }
 
@@ -364,6 +375,11 @@ export default function DashboardPage() {
             </div>
           </div>
           <form onSubmit={handleDeposit} className="space-y-4">
+            <div className="bg-white/5 p-3 rounded-xl border border-white/5 mb-2">
+                <p className="text-[10px] font-bold text-white/40 uppercase text-center">
+                  Limits: ₹{MIN_DEPOSIT} - ₹{MAX_DEPOSIT}
+                </p>
+            </div>
             <Input
               type="number"
               placeholder="Amount (INR)"
