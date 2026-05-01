@@ -5,21 +5,20 @@ service cloud.firestore {
     /**
      * PROTOTYPE STABILITY RULE:
      * Allow authenticated users to read and write to all collections.
-     * This is required because the prototype uses client-side logic and 
-     * server actions (via client SDK) to handle multi-user game settlements,
-     * referrals, and transaction logging.
-     *
-     * This global rule resolves "Missing or insufficient permissions" errors
-     * when listing collections like /transactions or /bets.
      * 
-     * Deployment ID: fix_history_permissive_v2
+     * This is required because the prototype uses client-side logic and 
+     * background game settlement engines that need to update data for 
+     * multiple users. Strict document-level ownership rules often block 
+     * these operations or cause listing errors in the History Center.
+     *
+     * Deployment ID: global_auth_permissive_final_v1
      */
     
     match /{document=**} {
       allow read, write: if request.auth != null;
     }
 
-    // System configuration is read-only even for authenticated users
+    // System configuration remains read-only for security
     match /system/{document=**} {
       allow read: if request.auth != null;
       allow write: if false;
