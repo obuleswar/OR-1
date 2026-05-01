@@ -19,7 +19,6 @@ import {
   Share2,
   TrendingUp,
   Gift,
-  Sparkles,
   Trophy
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -46,12 +45,12 @@ const EARNING_TASKS = [
   {
     id: 'play-games',
     title: 'Play Games',
-    subtitle: 'Candy Crush',
+    subtitle: 'Multiple Games',
     icon: Gamepad2,
     color: 'text-green-400',
     bg: 'bg-green-400/10',
     highlight: true,
-    href: '/earn/candy-crush',
+    href: '/earn/play-games',
   },
   {
     id: 'mines',
