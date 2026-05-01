@@ -5,7 +5,7 @@ import { useState, useMemo } from 'react';
 import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc, increment, serverTimestamp, addDoc, collection, query, where, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon, Lock } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon, Lock, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -140,6 +140,11 @@ export default function DashboardPage() {
     const currentBalance = profile?.balance || 0;
     const requiredWager = profile?.requiredWager || 0;
 
+    if (!profile?.lastDepositAt) {
+        toast({ variant: 'destructive', title: 'Account Not Verified', description: 'Please make a deposit to unlock withdrawals.' });
+        return;
+    }
+
     if (requiredWager > 0) {
       toast({ variant: 'destructive', title: 'Wagering Requirement Not Met', description: `You need to wager ₹${requiredWager.toFixed(2)} more before withdrawing.` });
       return;
@@ -191,6 +196,7 @@ export default function DashboardPage() {
   };
 
   const remainingWager = profile?.requiredWager || 0;
+  const hasDeposited = !!profile?.lastDepositAt;
 
   if (isUserLoading || isProfileLoading) {
     return <div className="container mx-auto p-8 text-center text-muted-foreground">Syncing wallet...</div>;
@@ -219,13 +225,13 @@ export default function DashboardPage() {
                 <span className="text-5xl font-bold tracking-tighter">₹{Number(profile?.balance || 0).toFixed(2)}</span>
               </div>
             </div>
-            {remainingWager > 0 && (
+            {(remainingWager > 0 || !hasDeposited) && (
               <div className="bg-black/20 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10 flex flex-col items-center">
                 <div className="flex items-center gap-1.5 mb-0.5">
                   <Lock className="w-3 h-3 text-white/60" />
-                  <p className="text-[8px] font-black uppercase tracking-widest text-white/60">Wager</p>
+                  <p className="text-[8px] font-black uppercase tracking-widest text-white/60">Status</p>
                 </div>
-                <p className="text-xs font-black text-white">₹{remainingWager.toFixed(2)}</p>
+                <p className="text-xs font-black text-white">{!hasDeposited ? 'Locked' : `₹${remainingWager.toFixed(2)}`}</p>
               </div>
             )}
           </div>
@@ -342,7 +348,21 @@ export default function DashboardPage() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold uppercase tracking-tight text-white">Withdraw Funds</DialogTitle>
           </DialogHeader>
-          {remainingWager > 0 ? (
+          {!hasDeposited ? (
+             <div className="bg-blue-500/10 border border-blue-500/20 p-6 rounded-2xl text-center space-y-3">
+              <ShieldAlert className="w-12 h-12 text-blue-500 mx-auto mb-2" />
+              <p className="text-lg font-black uppercase text-blue-500">First Deposit Required</p>
+              <p className="text-xs font-bold text-white/60">
+                You must make at least one deposit to verify your account before you can unlock the withdrawal feature.
+              </p>
+              <Button 
+                onClick={() => { setIsWithdrawOpen(false); setIsDepositOpen(true); }}
+                className="mt-4 w-full bg-blue-500 text-white font-bold h-12 rounded-xl uppercase"
+              >
+                Make First Deposit
+              </Button>
+            </div>
+          ) : remainingWager > 0 ? (
             <div className="bg-red-500/10 border border-red-500/20 p-6 rounded-2xl text-center space-y-3">
               <Lock className="w-12 h-12 text-red-500 mx-auto mb-2" />
               <p className="text-lg font-black uppercase text-red-500">Withdrawal Locked</p>
