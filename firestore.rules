@@ -9,9 +9,9 @@ service cloud.firestore {
      * 
      * This is required because the prototype uses client-side logic and 
      * background game settlement engines that need to update data for 
-     * multiple users.
+     * multiple users across various collections.
      *
-     * Deployment ID: global_auth_permissive_final_v3_clean
+     * Deployment ID: global_auth_permissive_v4_stable_final
      */
     
     match /{document=**} {

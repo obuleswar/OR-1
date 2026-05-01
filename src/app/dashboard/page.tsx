@@ -1,11 +1,11 @@
 
 'use client';
 
-import { useState } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { useState, useMemo } from 'react';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc, increment, serverTimestamp, addDoc, collection, query, where, limit } from 'firebase/firestore';
 import { Card, CardContent } from '@/components/ui/card';
-import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { IndianRupee, Wallet, Zap, Loader2, Copy, CheckCircle2, ArrowUpCircle, ArrowDownCircle, Trophy, Gift, Users as UsersIcon, Search, History as HistoryIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -18,6 +18,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import Link from 'next/link';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
 
 const ADMIN_UPI_ID = "orwallet@okaxis";
 
@@ -47,6 +49,38 @@ export default function DashboardPage() {
   }, [db, user?.uid]);
 
   const { data: profile, isLoading: isProfileLoading } = useDoc(userDocRef);
+
+  // Transactions query - sorting on client to avoid index issues in prototype
+  const transactionsQuery = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return query(
+      collection(db, 'transactions'),
+      where('userId', '==', user.uid),
+      limit(30)
+    );
+  }, [db, user?.uid]);
+
+  const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
+
+  const sortedTransactions = useMemo(() => {
+    if (!transactions) return [];
+    return [...transactions].sort((a, b) => {
+      const timeA = a.timestamp?.seconds || 0;
+      const timeB = b.timestamp?.seconds || 0;
+      return timeB - timeA;
+    });
+  }, [transactions]);
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'deposit': return <ArrowUpCircle className="w-5 h-5 text-green-500" />;
+      case 'withdraw': return <ArrowDownCircle className="w-5 h-5 text-red-500" />;
+      case 'win': return <Trophy className="w-5 h-5 text-yellow-500" />;
+      case 'bonus': return <Gift className="w-5 h-5 text-purple-500" />;
+      case 'referral': return <UsersIcon className="w-5 h-5 text-pink-500" />;
+      default: return <Search className="w-5 h-5 text-gray-500" />;
+    }
+  };
 
   const copyUpi = () => {
     navigator.clipboard.writeText(ADMIN_UPI_ID);
@@ -194,6 +228,51 @@ export default function DashboardPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction History Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between px-1">
+          <div className="flex items-center gap-2">
+            <HistoryIcon className="w-4 h-4 text-white/40" />
+            <h3 className="text-xs font-bold uppercase tracking-widest text-white/40">Recent Activity</h3>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          {isTransactionsLoading ? (
+            <div className="text-center py-10 text-white/20 text-xs">Loading activity...</div>
+          ) : sortedTransactions.length === 0 ? (
+            <div className="text-center py-10 bg-white/5 rounded-3xl border border-white/5">
+              <p className="text-xs font-bold text-white/20 uppercase">No recent activity</p>
+            </div>
+          ) : (
+            sortedTransactions.map((tx) => (
+              <div key={tx.id} className="bg-[#111] border border-white/5 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-bottom-1">
+                 <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
+                       {getIcon(tx.type)}
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white uppercase">{tx.type}</p>
+                      <p className="text-[10px] text-white/30 font-bold">
+                        {tx.timestamp?.toDate ? format(tx.timestamp.toDate(), 'dd MMM, HH:mm') : 'Just now'}
+                      </p>
+                    </div>
+                 </div>
+                 <div className="text-right">
+                    <p className={cn(
+                      "text-sm font-black",
+                      ['win', 'deposit', 'bonus', 'referral'].includes(tx.type) ? "text-green-500" : "text-red-500"
+                    )}>
+                      {['win', 'deposit', 'bonus', 'referral'].includes(tx.type) ? "+" : "-"}₹{Number(tx.amount).toFixed(2)}
+                    </p>
+                    <p className="text-[9px] text-white/20 font-bold uppercase truncate max-w-[120px]">{tx.description}</p>
+                 </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
 
       <Dialog open={isDepositOpen} onOpenChange={setIsDepositOpen}>
         <DialogContent className="bg-[#111] border-white/10 text-white sm:max-w-[425px] rounded-3xl">
