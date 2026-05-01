@@ -11,7 +11,9 @@
         "ownReferralCode": { "type": "string" },
         "referredBy": { "type": "string" },
         "createdAt": { "type": "string", "format": "date-time" },
-        "totalEarning": { "type": "number" }
+        "totalEarning": { "type": "number" },
+        "lastDepositAt": { "type": "string", "format": "date-time" },
+        "lastWithdrawAt": { "type": "string", "format": "date-time" }
       }
     },
     "Transaction": {
@@ -37,7 +39,8 @@
         "betType": { "type": "string" },
         "amount": { "type": "number" },
         "status": { "type": "string", "enum": ["pending", "won", "lost"] },
-        "payout": { "type": "number" }
+        "payout": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     },
     "Referral": {
@@ -45,9 +48,19 @@
       "type": "object",
       "description": "Referral tracking record.",
       "properties": {
-        "userId": { "type": "string" },
-        "status": { "type": "string" },
+        "referrerUid": { "type": "string" },
+        "referredUid": { "type": "string" },
+        "amount": { "type": "number" },
         "timestamp": { "type": "string", "format": "date-time" }
+      }
+    },
+    "GameResult": {
+      "title": "GameResult",
+      "type": "object",
+      "description": "Generic game round result.",
+      "properties": {
+        "period": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
       }
     }
   },
@@ -72,7 +85,22 @@
     },
     "/referrals/{referralId}": {
       "schema": "Referral",
-      "description": "Referral records."
+      "description": "Referral tracking records."
+    },
+    "/wingo_results/{period}": {
+      "schema": "GameResult",
+      "description": "History of Wingo game rounds."
+    },
+    "/k3_results/{period}": {
+      "schema": "GameResult",
+      "description": "History of K3 game rounds."
+    },
+    "/dragon_tiger_results/{period}": {
+      "schema": "GameResult",
+      "description": "History of Dragon Tiger game rounds."
+    },
+    "/mines_games/{gameId}": {
+      "description": "Active and completed Mines game sessions."
     },
     "/system/{document=**}": {
       "description": "System level configurations."
