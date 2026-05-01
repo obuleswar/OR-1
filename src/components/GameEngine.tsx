@@ -2,8 +2,8 @@
 'use client';
 
 import { useEffect, useCallback, useRef } from 'react';
-import { useFirestore } from '@/firebase';
-import { doc, getDoc, setDoc, serverTimestamp, query, collection, where, getDocs, writeBatch, increment } from 'firebase/firestore';
+import { useFirestore, useUser, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, getDoc, setDoc, serverTimestamp, query, collection, where, getDocs, increment } from 'firebase/firestore';
 
 const ROUND_TIME = 60;
 
@@ -29,6 +29,7 @@ const K3_MULTIPLIERS: Record<string, number> = {
 
 export function GameEngine() {
   const db = useFirestore();
+  const { user } = useUser();
   const lastSettledWingo = useRef<string | null>(null);
   const lastSettledK3 = useRef<string | null>(null);
   const lastSettledDT = useRef<string | null>(null);
@@ -43,7 +44,7 @@ export function GameEngine() {
   }, []);
 
   const settleWingo = async (period: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     try {
       const resultRef = doc(db, 'wingo_results', period);
       const resultSnap = await getDoc(resultRef);
@@ -64,11 +65,17 @@ export function GameEngine() {
         await setDoc(resultRef, { period, num, bs, color, createdAt: serverTimestamp() });
       }
 
-      const betsQuery = query(collection(db, 'bets'), where('period', '==', period), where('status', '==', 'pending'), where('gameType', '==', 'wingo'));
+      // Only settle bets belonging to the current user to ensure auth compliance
+      const betsQuery = query(
+        collection(db, 'bets'), 
+        where('period', '==', period), 
+        where('status', '==', 'pending'), 
+        where('gameType', '==', 'wingo'),
+        where('userId', '==', user.uid)
+      );
       const betsSnap = await getDocs(betsQuery);
       if (betsSnap.empty) return;
 
-      const batch = writeBatch(db);
       for (const betDoc of betsSnap.docs) {
         const bet = betDoc.data();
         let won = (bet.betType === bs) || color.includes(bet.betType.toLowerCase()) || (bet.betType === num.toString());
@@ -77,19 +84,28 @@ export function GameEngine() {
           if (bet.betType.toLowerCase() === 'violet') multiplier = 4.5;
           if (!isNaN(parseInt(bet.betType))) multiplier = 9;
           const payout = bet.amount * multiplier;
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'won', payout });
-          batch.update(doc(db, 'users', bet.userId), { balance: increment(payout), totalEarning: increment(payout - bet.amount) });
-          batch.set(doc(collection(db, 'transactions')), { userId: bet.userId, type: 'win', amount: payout, description: `Win on ${bet.betType} (Wingo) for ${period}`, timestamp: serverTimestamp() });
+          
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'won', payout });
+          updateDocumentNonBlocking(doc(db, 'users', user.uid), { 
+            balance: increment(payout), 
+            totalEarning: increment(payout - bet.amount) 
+          });
+          addDocumentNonBlocking(collection(db, 'transactions'), { 
+            userId: user.uid, 
+            type: 'win', 
+            amount: payout, 
+            description: `Win on ${bet.betType} (Wingo) for ${period}`, 
+            timestamp: serverTimestamp() 
+          });
         } else {
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
         }
       }
-      await batch.commit();
     } catch (e) { console.error('Wingo Settle Error', e); }
   };
 
   const settleK3 = async (period: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     try {
       const resultRef = doc(db, 'k3_results', period);
       const resultSnap = await getDoc(resultRef);
@@ -106,29 +122,42 @@ export function GameEngine() {
         await setDoc(resultRef, { period, dice, sum, bs, oe, createdAt: serverTimestamp() });
       }
 
-      const betsQuery = query(collection(db, 'bets'), where('period', '==', period), where('gameType', '==', 'k3'), where('status', '==', 'pending'));
+      const betsQuery = query(
+        collection(db, 'bets'), 
+        where('period', '==', period), 
+        where('gameType', '==', 'k3'), 
+        where('status', '==', 'pending'),
+        where('userId', '==', user.uid)
+      );
       const betsSnap = await getDocs(betsQuery);
       if (betsSnap.empty) return;
 
-      const batch = writeBatch(db);
       for (const betDoc of betsSnap.docs) {
         const bet = betDoc.data();
         let won = (bet.betType === bs || bet.betType === oe || bet.betType === sum.toString());
         if (won) {
           const payout = bet.amount * (K3_MULTIPLIERS[bet.betType] || 1.9);
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'won', payout });
-          batch.update(doc(db, 'users', bet.userId), { balance: increment(payout), totalEarning: increment(payout - bet.amount) });
-          batch.set(doc(collection(db, 'transactions')), { userId: bet.userId, type: 'win', amount: payout, description: `Win on ${bet.betType} (K3) for ${period}`, timestamp: serverTimestamp() });
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'won', payout });
+          updateDocumentNonBlocking(doc(db, 'users', user.uid), { 
+            balance: increment(payout), 
+            totalEarning: increment(payout - bet.amount) 
+          });
+          addDocumentNonBlocking(collection(db, 'transactions'), { 
+            userId: user.uid, 
+            type: 'win', 
+            amount: payout, 
+            description: `Win on ${bet.betType} (K3) for ${period}`, 
+            timestamp: serverTimestamp() 
+          });
         } else {
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
         }
       }
-      await batch.commit();
     } catch (e) { console.error('K3 Settle Error', e); }
   };
 
   const settleDT = async (period: string) => {
-    if (!db) return;
+    if (!db || !user) return;
     try {
       const resultRef = doc(db, 'dragon_tiger_results', period);
       const resultSnap = await getDoc(resultRef);
@@ -146,30 +175,43 @@ export function GameEngine() {
         await setDoc(resultRef, { period, winner, dragonCard, tigerCard, createdAt: serverTimestamp() });
       }
 
-      const betsQuery = query(collection(db, 'bets'), where('period', '==', period), where('gameType', '==', 'dragon_tiger'), where('status', '==', 'pending'));
+      const betsQuery = query(
+        collection(db, 'bets'), 
+        where('period', '==', period), 
+        where('gameType', '==', 'dragon_tiger'), 
+        where('status', '==', 'pending'),
+        where('userId', '==', user.uid)
+      );
       const betsSnap = await getDocs(betsQuery);
       if (betsSnap.empty) return;
 
-      const batch = writeBatch(db);
       for (const betDoc of betsSnap.docs) {
         const bet = betDoc.data();
         let won = bet.betType === winner;
         if (won) {
           const payout = bet.amount * (winner === 'Tie' ? 9 : 1.9);
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'won', payout });
-          batch.update(doc(db, 'users', bet.userId), { balance: increment(payout), totalEarning: increment(payout - bet.amount) });
-          batch.set(doc(collection(db, 'transactions')), { userId: bet.userId, type: 'win', amount: payout, description: `Win on ${bet.betType} (DragonTiger) for ${period}`, timestamp: serverTimestamp() });
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'won', payout });
+          updateDocumentNonBlocking(doc(db, 'users', user.uid), { 
+            balance: increment(payout), 
+            totalEarning: increment(payout - bet.amount) 
+          });
+          addDocumentNonBlocking(collection(db, 'transactions'), { 
+            userId: user.uid, 
+            type: 'win', 
+            amount: payout, 
+            description: `Win on ${bet.betType} (DragonTiger) for ${period}`, 
+            timestamp: serverTimestamp() 
+          });
         } else {
-          batch.update(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
+          updateDocumentNonBlocking(doc(db, 'bets', betDoc.id), { status: 'lost', payout: 0 });
         }
       }
-      await batch.commit();
     } catch (e) { console.error('DT Settle Error', e); }
   };
 
   useEffect(() => {
     const tick = async () => {
-      if (!db) return;
+      if (!db || !user) return;
       const now = new Date();
       const prevRoundTime = new Date(now.getTime() - (ROUND_TIME * 1000));
       const prevPeriod = generatePeriod(prevRoundTime);
@@ -191,7 +233,7 @@ export function GameEngine() {
     const timer = setInterval(tick, 2000);
     tick();
     return () => clearInterval(timer);
-  }, [generatePeriod, db]);
+  }, [generatePeriod, db, user]);
 
   return null;
 }

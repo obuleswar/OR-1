@@ -1,29 +1,25 @@
 
 'use client';
 
-import { useState, useTransition } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { useState } from 'react';
+import { useUser, useFirestore, useDoc, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase';
+import { doc, collection, serverTimestamp, increment } from 'firebase/firestore';
 import { ChevronLeft, IndianRupee, Bomb, Gem, Loader2, Zap, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { startMinesGame, revealMinesCell, cashOutMines } from './actions';
 import { getMinesMultiplier } from '@/lib/mines-logic';
 
 export default function MinesPage() {
   const { user } = useUser();
   const db = useFirestore();
   const { toast } = useToast();
-  const [isPending, startTransition] = useTransition();
 
   const [betAmount, setBetAmount] = useState(10);
   const [bombCount, setBombCount] = useState(3);
   
-  const [gameId, setGameId] = useState<string | null>(null);
-  const [revealedIndices, setRevealedIndices] = useState<number[]>([]);
-  const [bombPositions, setBombPositions] = useState<number[]>([]);
+  const [activeGame, setActiveGame] = useState<any>(null);
   const [gameStatus, setGameStatus] = useState<'idle' | 'active' | 'won' | 'lost'>('idle');
   const [isActionLoading, setIsActionLoading] = useState(false);
 
@@ -34,59 +30,96 @@ export default function MinesPage() {
 
   const { data: profile } = useDoc(userDocRef);
 
-  const handleStartGame = async () => {
-    if (!user) return toast({ variant: 'destructive', title: 'Sign in required' });
+  const handleStartGame = () => {
+    if (!user || !db || !userDocRef) return toast({ variant: 'destructive', title: 'Sign in required' });
+    if ((profile?.balance || 0) < betAmount) return toast({ variant: 'destructive', title: 'Insufficient balance' });
+
+    setIsActionLoading(true);
     
-    setIsActionLoading(true);
-    const res = await startMinesGame(user.uid, betAmount, bombCount);
-    if (res.success && res.gameId) {
-      setGameId(res.gameId);
-      setRevealedIndices([]);
-      setBombPositions([]);
-      setGameStatus('active');
-    } else {
-      toast({ variant: 'destructive', title: res.error });
+    // Generate bomb positions (0-24)
+    const bombs: number[] = [];
+    while (bombs.length < bombCount) {
+      const pos = Math.floor(Math.random() * 25);
+      if (!bombs.includes(pos)) bombs.push(pos);
     }
+
+    const gameId = Math.random().toString(36).substring(7);
+    const gameData = {
+      id: gameId,
+      userId: user.uid,
+      betAmount,
+      bombCount,
+      revealedIndices: [],
+      bombPositions: bombs,
+      status: 'active',
+      payout: 0,
+      createdAt: new Date().toISOString()
+    };
+
+    updateDocumentNonBlocking(userDocRef, {
+      balance: increment(-betAmount)
+    });
+
+    addDocumentNonBlocking(collection(db, 'transactions'), {
+      userId: user.uid,
+      type: 'bet',
+      amount: betAmount,
+      description: `Mines Game Start (${bombCount} Bombs)`,
+      timestamp: serverTimestamp()
+    });
+
+    // In a prototype, we can keep the sensitive game state in local state
+    // and sync to firestore for record keeping.
+    setActiveGame(gameData);
+    setGameStatus('active');
+    
+    addDocumentNonBlocking(collection(db, 'mines_games'), gameData);
+
     setIsActionLoading(false);
   };
 
-  const handleReveal = async (index: number) => {
-    if (gameStatus !== 'active' || isActionLoading || revealedIndices.includes(index)) return;
+  const handleReveal = (index: number) => {
+    if (gameStatus !== 'active' || isActionLoading || activeGame.revealedIndices.includes(index)) return;
+
+    const isBomb = activeGame.bombPositions.includes(index);
+    const newRevealed = [...activeGame.revealedIndices, index];
+
+    if (isBomb) {
+      setGameStatus('lost');
+      setActiveGame({ ...activeGame, revealedIndices: newRevealed, status: 'lost' });
+      toast({ variant: 'destructive', title: 'BOOM!', description: 'You hit a mine.' });
+    } else {
+      setActiveGame({ ...activeGame, revealedIndices: newRevealed });
+    }
+  };
+
+  const handleCashOut = () => {
+    if (gameStatus !== 'active' || !activeGame || activeGame.revealedIndices.length === 0 || !userDocRef) return;
 
     setIsActionLoading(true);
-    const res = await revealMinesCell(gameId!, user!.uid, index);
-    if (res.success) {
-      if (res.result === 'bomb') {
-        setGameStatus('lost');
-        setRevealedIndices(prev => [...prev, index]);
-        setBombPositions(res.bombPositions || []);
-        toast({ variant: 'destructive', title: 'BOOM!', description: 'You hit a mine.' });
-      } else {
-        setRevealedIndices(prev => [...prev, index]);
-      }
-    } else {
-      toast({ variant: 'destructive', title: res.error });
-    }
+    const multiplier = getMinesMultiplier(activeGame.bombCount, activeGame.revealedIndices.length);
+    const payout = Math.floor(activeGame.betAmount * multiplier);
+
+    updateDocumentNonBlocking(userDocRef, {
+      balance: increment(payout),
+      totalEarning: increment(payout - activeGame.betAmount)
+    });
+
+    addDocumentNonBlocking(collection(db, 'transactions'), {
+      userId: user!.uid,
+      type: 'win',
+      amount: payout,
+      description: `Mines Cash Out (${activeGame.revealedIndices.length} Gems)`,
+      timestamp: serverTimestamp()
+    });
+
+    setGameStatus('won');
+    toast({ title: 'Cashed Out!', description: `Won ₹${payout.toFixed(2)}` });
     setIsActionLoading(false);
   };
 
-  const handleCashOut = async () => {
-    if (gameStatus !== 'active' || revealedIndices.length === 0 || isActionLoading) return;
-
-    setIsActionLoading(true);
-    const res = await cashOutMines(gameId!, user!.uid);
-    if (res.success) {
-      setGameStatus('won');
-      setBombPositions(res.bombPositions || []);
-      toast({ title: 'Cashed Out!', description: `Won ₹${res.payout.toFixed(2)}` });
-    } else {
-      toast({ variant: 'destructive', title: res.error });
-    }
-    setIsActionLoading(false);
-  };
-
-  const currentMultiplier = getMinesMultiplier(bombCount, revealedIndices.length);
-  const potentialWin = Math.floor(betAmount * currentMultiplier);
+  const currentMultiplier = activeGame ? getMinesMultiplier(activeGame.bombCount, activeGame.revealedIndices.length) : 1;
+  const potentialWin = activeGame ? Math.floor(activeGame.betAmount * currentMultiplier) : 0;
 
   return (
     <div className="container mx-auto px-4 py-4 max-w-lg min-h-screen bg-[#050505] text-white pb-24 font-body">
@@ -123,9 +156,9 @@ export default function MinesPage() {
 
       <div className="bg-[#0a0a0a] aspect-square grid grid-cols-5 gap-3 p-4 rounded-[2rem] border border-white/5 shadow-2xl mb-8">
         {Array.from({ length: 25 }).map((_, i) => {
-          const isRevealed = revealedIndices.includes(i);
-          const isBomb = bombPositions.includes(i);
-          const showAsBomb = (gameStatus !== 'active' && isBomb);
+          const isRevealed = activeGame?.revealedIndices.includes(i);
+          const isBomb = activeGame?.bombPositions.includes(i);
+          const showAsBomb = (gameStatus !== 'active' && gameStatus !== 'idle' && isBomb);
           const showAsGem = (isRevealed && !isBomb) || (gameStatus === 'won' && !isBomb);
 
           return (
@@ -201,7 +234,7 @@ export default function MinesPage() {
           {gameStatus === 'active' ? (
             <Button 
               onClick={handleCashOut}
-              disabled={revealedIndices.length === 0 || isActionLoading}
+              disabled={activeGame?.revealedIndices.length === 0 || isActionLoading}
               className="w-full h-16 bg-green-500 hover:bg-green-600 text-white font-black text-lg rounded-2xl shadow-lg"
             >
               {isActionLoading ? <Loader2 className="animate-spin" /> : `CASH OUT ₹${potentialWin.toFixed(2)}`}
@@ -228,7 +261,7 @@ export default function MinesPage() {
           </p>
           <Button 
             variant="link" 
-            onClick={() => { setGameStatus('idle'); setGameId(null); setRevealedIndices([]); setBombPositions([]); }}
+            onClick={() => { setGameStatus('idle'); setActiveGame(null); }}
             className="text-white/40 text-xs mt-2"
           >
             Play Again

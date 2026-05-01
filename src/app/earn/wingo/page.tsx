@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase } from '@/firebase';
-import { doc, collection, query, orderBy, limit, writeBatch, serverTimestamp, increment, addDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useCollection, useMemoFirebase, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, orderBy, limit, serverTimestamp, increment } from 'firebase/firestore';
 import { IndianRupee, Zap, ChevronLeft, Loader2, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -81,8 +81,8 @@ export default function WingoPage() {
     setIsBettingOpen(true);
   };
 
-  const onConfirmBet = async () => {
-    if (!user || !db) {
+  const onConfirmBet = () => {
+    if (!user || !db || !userDocRef) {
       toast({ variant: 'destructive', title: 'Sign In Required' });
       return;
     }
@@ -94,43 +94,32 @@ export default function WingoPage() {
 
     setIsPlacingBet(true);
     
-    try {
-      const batch = writeBatch(db);
-      const betRef = doc(collection(db, 'bets'));
-      const txnRef = doc(collection(db, 'transactions'));
-      const userRef = doc(db, 'users', user.uid);
+    // Non-blocking write for performance and to leverage SDK auth context
+    updateDocumentNonBlocking(userDocRef, {
+      balance: increment(-selectedAmount)
+    });
 
-      batch.set(betRef, {
-        userId: user.uid,
-        period: currentPeriod,
-        gameType: 'wingo',
-        betType: betType,
-        amount: selectedAmount,
-        status: 'pending',
-        createdAt: serverTimestamp()
-      });
+    addDocumentNonBlocking(collection(db, 'bets'), {
+      userId: user.uid,
+      period: currentPeriod,
+      gameType: 'wingo',
+      betType: betType,
+      amount: selectedAmount,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
 
-      batch.update(userRef, {
-        balance: increment(-selectedAmount)
-      });
+    addDocumentNonBlocking(collection(db, 'transactions'), {
+      userId: user.uid,
+      type: 'bet',
+      amount: selectedAmount,
+      description: `Bet on ${betType} for period ${currentPeriod}`,
+      timestamp: serverTimestamp()
+    });
 
-      batch.set(txnRef, {
-        userId: user.uid,
-        type: 'bet',
-        amount: selectedAmount,
-        description: `Bet on ${betType} for period ${currentPeriod}`,
-        timestamp: serverTimestamp()
-      });
-
-      await batch.commit();
-      
-      toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}` });
-      setIsBettingOpen(false);
-    } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Error', description: error.message });
-    } finally {
-      setIsPlacingBet(false);
-    }
+    toast({ title: 'Bet Placed', description: `₹${selectedAmount.toFixed(2)} on ${betType}` });
+    setIsBettingOpen(false);
+    setIsPlacingBet(false);
   };
 
   const getNumberColor = (num: number) => {

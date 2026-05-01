@@ -2,14 +2,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection } from '@/firebase';
-import { doc, collection, query, orderBy, limit } from 'firebase/firestore';
+import { useUser, useFirestore, useDoc, useMemoFirebase, useCollection, updateDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, orderBy, limit, serverTimestamp, increment } from 'firebase/firestore';
 import { ChevronLeft, IndianRupee, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
-import { placeK3Bet } from './actions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const ROUND_TIME = 60;
@@ -112,8 +111,8 @@ export default function K3LotrePage() {
     return () => clearInterval(timer);
   }, [currentPeriod, generatePeriod, isInitialized]);
 
-  const handleBet = async (type: string) => {
-    if (!user) {
+  const handleBet = (type: string) => {
+    if (!user || !db || !userDocRef) {
       toast({ variant: 'destructive', title: 'Sign In Required' });
       return;
     }
@@ -121,13 +120,38 @@ export default function K3LotrePage() {
       toast({ variant: 'destructive', title: 'Betting Closed' });
       return;
     }
-    setIsPlacingBet(true);
-    const res = await placeK3Bet(user.uid, currentPeriod, type, selectedChip);
-    if (res.success) {
-      toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}` });
-    } else {
-      toast({ variant: 'destructive', title: 'Bet Failed', description: res.error });
+
+    if ((profile?.balance || 0) < selectedChip) {
+      toast({ variant: 'destructive', title: 'Insufficient balance' });
+      return;
     }
+
+    setIsPlacingBet(true);
+    
+    // Non-blocking write
+    updateDocumentNonBlocking(userDocRef, {
+      balance: increment(-selectedChip)
+    });
+
+    addDocumentNonBlocking(collection(db, 'bets'), {
+      userId: user.uid,
+      period: currentPeriod,
+      gameType: 'k3',
+      betType: type,
+      amount: selectedChip,
+      status: 'pending',
+      createdAt: serverTimestamp()
+    });
+
+    addDocumentNonBlocking(collection(db, 'transactions'), {
+      userId: user.uid,
+      type: 'bet',
+      amount: selectedChip,
+      description: `Bet on ${type} in K3 for period ${currentPeriod}`,
+      timestamp: serverTimestamp()
+    });
+
+    toast({ title: 'Bet Successful', description: `₹${selectedChip.toFixed(2)} on ${type}` });
     setIsPlacingBet(false);
   };
 
