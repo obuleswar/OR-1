@@ -18,7 +18,8 @@ import {
   MessageCircle,
   Share2,
   TrendingUp,
-  Gift
+  Gift,
+  Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
@@ -49,6 +50,16 @@ const EARNING_TASKS = [
     color: 'text-green-400',
     bg: 'bg-green-400/10',
     href: '#',
+  },
+  {
+    id: 'candy-crush',
+    title: 'Candy Crush',
+    subtitle: 'Skill Match',
+    icon: Sparkles,
+    color: 'text-yellow-300',
+    bg: 'bg-yellow-300/10',
+    highlight: true,
+    href: '/earn/candy-crush',
   },
   {
     id: 'mines',
@@ -84,7 +95,6 @@ const EARNING_TASKS = [
     icon: Sword,
     color: 'text-pink-400',
     bg: 'bg-pink-400/10',
-    highlight: true,
     href: '/earn/dragon-tiger',
   },
   {
@@ -112,7 +122,6 @@ export default function EarnPage() {
 
   const { data: profile } = useDoc(userDocRef);
 
-  // Fetch referrals to count them and calculate total earnings
   const referralsQuery = useMemoFirebase(() => {
     if (!db || !user?.uid) return null;
     return query(collection(db, 'referrals'), where('referrerUid', '==', user.uid));
