@@ -100,7 +100,7 @@ export default function PlayGamesMenu() {
           </li>
           <li className="flex gap-3 text-xs font-bold text-white/60">
             <span className="text-primary">4.</span>
-            <span>Receive ₹2.00 instantly in your wallet!</span>
+            <span>Receive ₹0.05 instantly in your wallet!</span>
           </li>
         </ul>
       </div>

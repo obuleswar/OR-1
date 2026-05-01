@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 
 const GAME_TIME = 300; // 5 Minutes
 const GAME_URL = "https://html5.gamemonetize.co/jb0dcjocnv110l3a3tmmdxbnto6gwv8g/";
-const REWARD_AMOUNT = 2.00;
+const REWARD_AMOUNT = 0.05;
 
 export default function CandyCrushPage() {
   const { user } = useUser();

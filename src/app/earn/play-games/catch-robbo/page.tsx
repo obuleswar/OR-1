@@ -20,7 +20,7 @@ import { Label } from '@/components/ui/label';
 
 const GAME_TIME = 300; // 5 Minutes
 const GAME_URL = "https://html5.gamemonetize.co/8iqhnzid5ecd34yajtwv6dvdhdpy1eqa/";
-const REWARD_AMOUNT = 2.00;
+const REWARD_AMOUNT = 0.05;
 
 export default function CatchRobboPage() {
   const { user } = useUser();
