@@ -89,15 +89,6 @@ const EARNING_TASKS = [
     href: '/earn/dragon-tiger',
   },
   {
-    id: 'lucky-draw',
-    title: 'Lucky Draw',
-    subtitle: 'Spin & Win',
-    icon: Trophy,
-    color: 'text-amber-400',
-    bg: 'bg-amber-400/10',
-    href: '#',
-  },
-  {
     id: 'refer-earn',
     title: 'Refer & Earn',
     subtitle: 'Invite Friends',
