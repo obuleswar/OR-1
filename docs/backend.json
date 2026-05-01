@@ -28,11 +28,24 @@
       "properties": {
         "userId": { "type": "string" },
         "type": { "type": "string", "enum": ["deposit", "withdraw", "bet", "win", "bonus", "referral"] },
-        "status": { "type": "string", "enum": ["pending", "completed", "rejected"], "description": "Status for manual verification items like deposits/withdrawals." },
+        "status": { "type": "string", "enum": ["pending", "completed", "rejected"] },
         "amount": { "type": "number" },
         "description": { "type": "string" },
         "timestamp": { "type": "string", "format": "date-time" },
-        "utr": { "type": "string", "description": "UTR for deposits" }
+        "utr": { "type": "string" }
+      }
+    },
+    "Deposit": {
+      "title": "Deposit",
+      "type": "object",
+      "description": "A manual deposit request pending admin approval.",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "utr": { "type": "string" },
+        "email": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" }
       }
     },
     "Bet": {
@@ -93,6 +106,10 @@
     "/transactions/{transactionId}": {
       "schema": "Transaction",
       "description": "User financial history."
+    },
+    "/deposits/{depositId}": {
+      "schema": "Deposit",
+      "description": "Pending manual deposit requests for admin verification."
     },
     "/bets/{betId}": {
       "schema": "Bet",

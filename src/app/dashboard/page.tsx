@@ -56,20 +56,38 @@ export default function DashboardPage() {
     return query(
       collection(db, 'transactions'),
       where('userId', '==', user.uid),
-      limit(30)
+      limit(20)
+    );
+  }, [db, user?.uid]);
+
+  // Deposits query (to show pending ones)
+  const depositsQuery = useMemoFirebase(() => {
+    if (!db || !user?.uid) return null;
+    return query(
+      collection(db, 'deposits'),
+      where('userId', '==', user.uid),
+      where('status', '==', 'pending'),
+      limit(10)
     );
   }, [db, user?.uid]);
 
   const { data: transactions, isLoading: isTransactionsLoading } = useCollection(transactionsQuery);
+  const { data: pendingDeposits, isLoading: isDepositsLoading } = useCollection(depositsQuery);
 
-  const sortedTransactions = useMemo(() => {
-    if (!transactions) return [];
-    return [...transactions].sort((a, b) => {
+  const sortedActivities = useMemo(() => {
+    const txs = transactions || [];
+    const deps = (pendingDeposits || []).map(d => ({
+      ...d,
+      type: 'deposit',
+      description: `Deposit Request (UTR: ${d.utr})`
+    }));
+    
+    return [...txs, ...deps].sort((a, b) => {
       const timeA = a.timestamp?.seconds || 0;
       const timeB = b.timestamp?.seconds || 0;
       return timeB - timeA;
     });
-  }, [transactions]);
+  }, [transactions, pendingDeposits]);
 
   const getIcon = (type: string, status?: string) => {
     if (status === 'pending') return <Clock className="w-5 h-5 text-yellow-500 animate-pulse" />;
@@ -108,16 +126,11 @@ export default function DashboardPage() {
     }
 
     if (userDocRef && db) {
-      // NOTE: We no longer update the user balance directly.
-      // The admin will verify the transaction manually in the console.
-      
-      // Log transaction as pending
-      await addDoc(collection(db, 'transactions'), {
+      // Save to 'deposits' collection for manual verification
+      await addDoc(collection(db, 'deposits'), {
         userId: user!.uid,
-        type: 'deposit',
         status: 'pending',
         amount: amount,
-        description: `Deposit Request via UPI (UTR: ${utr})`,
         utr: utr,
         email: depositEmail,
         timestamp: serverTimestamp()
@@ -173,7 +186,6 @@ export default function DashboardPage() {
       updateDocumentNonBlocking(userDocRef, {
         balance: increment(-amount),
         lastWithdrawAt: serverTimestamp(),
-        lastWithdrawDetails: { amount, method: withdrawMethod, details, email: withdrawEmail }
       });
 
       // Log transaction
@@ -256,7 +268,7 @@ export default function DashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Transaction History Section */}
+      {/* Activity Section */}
       <div className="space-y-4">
         <div className="flex items-center justify-between px-1">
           <div className="flex items-center gap-2">
@@ -266,14 +278,14 @@ export default function DashboardPage() {
         </div>
 
         <div className="space-y-3">
-          {isTransactionsLoading ? (
+          {(isTransactionsLoading || isDepositsLoading) ? (
             <div className="text-center py-10 text-white/20 text-xs">Loading activity...</div>
-          ) : sortedTransactions.length === 0 ? (
+          ) : sortedActivities.length === 0 ? (
             <div className="text-center py-10 bg-white/5 rounded-3xl border border-white/5">
               <p className="text-xs font-bold text-white/20 uppercase">No recent activity</p>
             </div>
           ) : (
-            sortedTransactions.map((tx) => (
+            sortedActivities.map((tx) => (
               <div key={tx.id} className="bg-[#111] border border-white/5 rounded-2xl p-4 flex items-center justify-between animate-in fade-in slide-in-from-bottom-1">
                  <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center">
