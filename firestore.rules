@@ -2,12 +2,11 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     /**
-     * GLOBAL PERMISSIVE RULES FOR PROTOTYPING
+     * PROTOTYPE SECURITY RULES: GLOBAL ACCESS
      * 
-     * To resolve persistent "Missing or insufficient permissions" errors, 
-     * we are allowing all authenticated users to read and write to any collection.
-     * This ensures that features like the Game Engine, Wallet, and History Center 
-     * function without interruption for any logged-in user.
+     * We are allowing all authenticated users full read/write access to any path.
+     * This resolves persistent permission errors in the History Center and allows 
+     * the background Game Engine to update balances and process settlements.
      */
     match /{document=**} {
       allow read, write: if request.auth != null;
