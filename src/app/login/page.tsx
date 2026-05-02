@@ -2,7 +2,7 @@
 'use client';
 
 import { useState, useEffect, Suspense } from 'react';
-import { useAuth, initiateEmailSignIn, useFirestore, setDocumentNonBlocking, addDocumentNonBlocking } from '@/firebase';
+import { useAuth, initiateEmailSignIn, useFirestore, setDocumentNonBlocking, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
-import { doc, getDocs, collection, query, where, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
+import { doc, getDocs, collection, query, where, serverTimestamp, increment } from 'firebase/firestore';
 import { generateReferralCode } from '@/lib/utils';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 
@@ -28,6 +28,7 @@ function LoginContent() {
   const { toast } = useToast();
   const searchParams = useSearchParams();
 
+  // Automatically fill referral ID from URL
   useEffect(() => {
     const ref = searchParams.get('ref');
     if (ref) {
@@ -59,24 +60,24 @@ function LoginContent() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const user = userCredential.user;
 
-      // Generate a unique 8-character referral code
       const ownCode = generateReferralCode();
-      
-      // Create user profile in 'users' collection with ₹28 Sign up bonus
       const userRef = doc(db, 'users', user.uid);
+      
+      // Create user profile with ₹28 Sign up bonus
       setDocumentNonBlocking(userRef, {
         uid: user.uid,
         name: name.trim(),
         email: user.email,
         phoneNumber: phoneNumber.trim(),
-        balance: 28, // Sign up bonus
+        balance: 28, 
+        requiredWager: 0,
         ownReferralCode: ownCode,
         referredBy: referralCode.trim().toUpperCase() || null,
         createdAt: serverTimestamp(),
         totalEarning: 28,
       }, { merge: true });
 
-      // Log the sign up bonus transaction
+      // Welcome Bonus Transaction
       addDocumentNonBlocking(collection(db, 'transactions'), {
         userId: user.uid,
         type: 'bonus',
@@ -85,7 +86,7 @@ function LoginContent() {
         timestamp: serverTimestamp(),
       });
 
-      // Handle referral logic
+      // Handle referral bonus for the referrer
       if (referralCode.trim()) {
         const cleanCode = referralCode.trim().toUpperCase();
         const referrersQuery = query(collection(db, 'users'), where('ownReferralCode', '==', cleanCode));
@@ -95,12 +96,13 @@ function LoginContent() {
           const referrerDoc = referrerDocs.docs[0];
           const referrerId = referrerDoc.id;
 
-          // Credit the referrer ₹45
-          updateDoc(doc(db, 'users', referrerId), {
-            balance: increment(45)
+          // Credit referrer ₹45
+          updateDocumentNonBlocking(doc(db, 'users', referrerId), {
+            balance: increment(45),
+            totalEarning: increment(45)
           });
 
-          // Log the transaction in 'referrals' collection
+          // Log referral record
           addDocumentNonBlocking(collection(db, 'referrals'), {
             referrerUid: referrerId,
             referredUid: user.uid,
@@ -116,10 +118,6 @@ function LoginContent() {
             description: `Referral bonus for inviting ${name || user.email}`,
             timestamp: serverTimestamp()
           });
-
-          toast({ title: 'Referral Applied!', description: 'Bonus applied successfully.' });
-        } else {
-          toast({ variant: 'destructive', title: 'Invalid Code', description: 'No user found with that referral code.' });
         }
       }
 
@@ -227,14 +225,14 @@ function LoginContent() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="signup-referral">Refer ID (Optional)</Label>
+                  <Label htmlFor="signup-referral">Refer ID (Auto-filled)</Label>
                   <Input
                     id="signup-referral"
                     type="text"
                     placeholder="ENTER CODE"
-                    className="uppercase bg-white/5 border-white/10"
+                    className="uppercase bg-white/5 border-primary/30"
                     value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
+                    onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   />
                 </div>
                 <Button type="submit" className="w-full bg-primary font-bold h-12 rounded-xl" disabled={isLoading}>
@@ -251,7 +249,7 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="flex items-center justify-center min-h-[80vh]">Loading...</div>}>
+    <Suspense fallback={<div className="flex items-center justify-center min-h-[80vh] text-white">Loading Auth...</div>}>
       <LoginContent />
     </Suspense>
   );
